@@ -30,7 +30,7 @@ THE SOFTWARE.
 #include <HardwareSerial.h>
 #include "Atlas_RGB.h"
 
-#include <Logger_SD.h>// for my SD logging system
+//#include <Logger_SD.h>// for my SD logging system
 
 /*----------( Define Global Objects)----------*/
 
@@ -77,7 +77,7 @@ uint8_t AtlasRGB::getRGB(){
     _getPromptedResponse(1200);
   }
   _light_sat = 0; // Assume not light_sat
-  Logger_SD::Instance()->msgL(DEBUG,"_MODE is %d",_rgb_mode);
+  //Logger_SD::Instance()->msgL(DEBUG,"_MODE is %d",_rgb_mode);
   for ( uint8_t i = 0 ; i < _buffer_len ; i++) {
     Serial.print(_rgb_buffer[i]);
     if ( i >= (_BUFFER_SIZE - 1)) return 1; // Array to big
@@ -88,44 +88,44 @@ uint8_t AtlasRGB::getRGB(){
       temp_buffer[temp_idx] = '\0';
       switch (field) {
         case 1:
-          Logger_SD::Instance()->msgL(DEBUG,"first RGB field is >%s< with index %d",temp_buffer,temp_idx);
+          //Logger_SD::Instance()->msgL(DEBUG,"first RGB field is >%s< with index %d",temp_buffer,temp_idx);
           if ( _rgb_mode == 1 || _rgb_mode == 3 ) memcpy(_red,   temp_buffer,temp_idx+1);
           else memcpy(_lx_red,temp_buffer,temp_idx+1);
           break;
         case 2:
-          Logger_SD::Instance()->msgL(DEBUG,"second RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"second RGB field is %s",temp_buffer);
           if ( _rgb_mode == 1 || _rgb_mode == 3 ) memcpy(_green,   temp_buffer,temp_idx+1);
           else memcpy(_lx_green,temp_buffer,temp_idx+1);
           break;
         case 3:
-          Logger_SD::Instance()->msgL(DEBUG,"third RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"third RGB field is %s",temp_buffer);
           if ( _rgb_mode == 1 || _rgb_mode == 3 ) memcpy(_blue,   temp_buffer,temp_idx+1);
           else memcpy(_lx_blue,temp_buffer,temp_idx+1);
           break;
         case 4:
-          Logger_SD::Instance()->msgL(DEBUG,"fourth RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"fourth RGB field is %s",temp_buffer);
           if ( _rgb_mode == 1 ) return 7;
           else if ( _rgb_mode == 2 ) memcpy(_lx_total,temp_buffer,temp_idx+1);
           else memcpy(_lx_red,  temp_buffer,temp_idx+1);
           break;
         case 5:
-          Logger_SD::Instance()->msgL(DEBUG,"fifth RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"fifth RGB field is %s",temp_buffer);
           if ( _rgb_mode == 1 ) return 7;
           else if ( _rgb_mode == 2 ) memcpy(_lx_beyond,temp_buffer,temp_idx+1);
           else memcpy(_lx_green, temp_buffer,temp_idx+1);
           break;
         case 6:
-          Logger_SD::Instance()->msgL(DEBUG,"sixth RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"sixth RGB field is %s",temp_buffer);
           if ( _rgb_mode != 3 ) return 7;
           memcpy(_lx_blue,temp_buffer,temp_idx+1);
           break;
         case 7:
-          Logger_SD::Instance()->msgL(DEBUG,"seventh RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"seventh RGB field is %s",temp_buffer);
           if ( _rgb_mode != 3 ) return 7;
           memcpy(_lx_total,temp_buffer,temp_idx+1);
           break;
         case 8:
-          Logger_SD::Instance()->msgL(DEBUG,"eighth RGB field is %s",temp_buffer);
+          //Logger_SD::Instance()->msgL(DEBUG,"eighth RGB field is %s",temp_buffer);
           if ( _rgb_mode != 3 ) return 7;
           memcpy(_lx_beyond,temp_buffer,temp_idx+1);
           break;
@@ -148,7 +148,7 @@ uint8_t AtlasRGB::getRGB(){
  */
 void AtlasRGB::setMode(uint8_t desired_mode){
   _rgb_buffer[0] = 'M'; _rgb_buffer[1] = desired_mode + '0'; _rgb_buffer[2] = 13; _rgb_buffer[3] = 0; _buffer_len = 4;
-  Logger_SD::Instance()->msgL(DEBUG,"setMode sending %s.",_rgb_buffer);
+  //Logger_SD::Instance()->msgL(DEBUG,"setMode sending %s.",_rgb_buffer);
   _getPromptedResponse(2000); //The ENV-RGB will respond: RGB<CR> or lx<CR> or RGB+lx<CR>
   // The ENV-RGB will respond: RGB<CR> or lx<CR> or RGB+lx<CR>
   _rgb_mode = 0; // reset _rgb_mode
@@ -159,18 +159,18 @@ void AtlasRGB::setMode(uint8_t desired_mode){
     else if ( _rgb_buffer[i] == 13 ) break;
   }
   if ( _rgb_mode != desired_mode ) {
-    Logger_SD::Instance()->msgL(WARN," Requested _rgb_mode %d but got _rgb_mode %d (%s)",desired_mode,_rgb_mode,_rgb_buffer);
+    //Logger_SD::Instance()->msgL(WARN," Requested _rgb_mode %d but got _rgb_mode %d (%s)",desired_mode,_rgb_mode,_rgb_buffer);
     _rgb_mode = 3; //TEMPORARY FIX FOR UNKNOWN COMMUNICATIONS PROBLEM RYAN
   }
   else {
-    Logger_SD::Instance()->msgL(DEBUG,"Set Light output _rgb_mode to %d.",_rgb_mode);
+    //Logger_SD::Instance()->msgL(DEBUG,"Set Light output _rgb_mode to %d.",_rgb_mode);
   }
 }
 
 /** Set the RGB sensor to quiet mode.
  */
 void AtlasRGB::setQuiet() {
-  Logger_SD::Instance()->msgL(DEBUG,"Setting RGB mode to quiet");
+  //Logger_SD::Instance()->msgL(DEBUG,"Setting RGB mode to quiet");
   _rgb_buffer[0] = 'E'; _rgb_buffer[1] = 13; _rgb_buffer[2] = 0; _buffer_len = 3;
   _continuous = false;
   _getPromptedResponse(3000);
@@ -225,10 +225,10 @@ void AtlasRGB::_getPromptedResponse(uint32_t timeout) {
     _RGBHardSerial->read();
     i++;
   }
-  if (i) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d bytes from serial port",i);
+  //if (i) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d bytes from serial port",i);
   _RGBHardSerial->print(_rgb_buffer);
   _RGBHardSerial->flush(); // Wait for bytes to be written.
-  Logger_SD::Instance()->msgL(DEBUG,"Sent [%s] to RGB sensor",_rgb_buffer);
+  //Logger_SD::Instance()->msgL(DEBUG,"Sent [%s] to RGB sensor",_rgb_buffer);
   uint32_t read_begin = millis();
   while ((millis() - read_begin) <= timeout ){
      if ( _RGBHardSerial->available() ) {
@@ -243,7 +243,7 @@ void AtlasRGB::_getPromptedResponse(uint32_t timeout) {
   }
   if ((millis() - read_begin) > timeout ) Serial.println("Timed out waiting for Reply");
   _rgb_buffer[_buffer_len] = '\0'; // For safety
-  Logger_SD::Instance()->msgL(DEBUG,"Got buffer [%s] of length %d.",_rgb_buffer,_buffer_len);
+  //Logger_SD::Instance()->msgL(DEBUG,"Got buffer [%s] of length %d.",_rgb_buffer,_buffer_len);
 
 }
 
@@ -252,8 +252,8 @@ void AtlasRGB::_getPromptedResponse(uint32_t timeout) {
  */
 void AtlasRGB::_getContinuousResponse(uint32_t timeout) {
   _buffer_len = 0; // will be incremented
-  uint16_t bytes_cleared = _clearBuffer();
-  if (bytes_cleared) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d old bytes from buffer",bytes_cleared);
+  //uint16_t bytes_cleared = _clearBuffer();
+  //if (bytes_cleared) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d old bytes from buffer",bytes_cleared);
   uint32_t read_begin = millis();
   uint16_t bytes_read = 0;
   while ((millis() - read_begin ) <= timeout ) { // First ignore everything until first CR 
@@ -263,7 +263,7 @@ void AtlasRGB::_getContinuousResponse(uint32_t timeout) {
       if ( _read_char == 13 ) break;
     }
   }
-  if (bytes_read) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d new bytes looking for CR",bytes_read);
+  //if (bytes_read) Logger_SD::Instance()->msgL(DEBUG,"Cleared %d new bytes looking for CR",bytes_read);
   read_begin = millis();
   while ((millis() - read_begin) <= timeout ){ // now record anything up to the next CR or timeout
      if ( _RGBHardSerial->available() ) {
@@ -277,7 +277,7 @@ void AtlasRGB::_getContinuousResponse(uint32_t timeout) {
   }
   if ((millis() - read_begin) > timeout ) Serial.println("Timed out waiting for Reply");
   _rgb_buffer[_buffer_len] = '\0'; // For safety
-  Logger_SD::Instance()->msgL(DEBUG,"Got buffer [%s] of length %d.",_rgb_buffer,_buffer_len);
+  //Logger_SD::Instance()->msgL(DEBUG,"Got buffer [%s] of length %d.",_rgb_buffer,_buffer_len);
 }
 
 /** clear any characters in buffer
