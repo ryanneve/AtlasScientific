@@ -1,5 +1,26 @@
-// comment
+/*============================================================================
+Atlas Scientific EZO sensor library code is placed under the GNU license
+Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	
+	Based on Atlas Scientific EZO datasheets:
+		DO	v2.0
+		EC	v2.4
+		ORP	v2.0
+		PH	v2.0
+============================================================================*/
 #include <HardwareSerial.h>
 #include <AtlasScientific/Atlas_EZO.h>
 
@@ -7,8 +28,13 @@
 /*              COMMON PUBLIC METHODS                      */
 
 
+void EZO::begin(HardwareSerial *serial,uint32_t baud_rate) {
+	_baud_rate = baud_rate;
+	Serial_AS = serial;
+	begin();
+}
 void EZO::begin() {
-	Serial_EZO->begin(_baud_rate);
+	Serial_AS->begin(_baud_rate);
 	flushSerial();
 }
 
@@ -19,7 +45,7 @@ ezo_response EZO::enableContinuousReadings(){
 }
 ezo_response EZO::disableContinuousReadings(){
 	if ( _i2c_address != 0 ) {
-		_continuous_mode = EZO_OFF;
+		_continuous_mode = TRI_OFF;
 		return EZO_RESPONSE_OK; // i2c mode has no continuous mode
 	}
 	strncpy(_command,"C,0\r",EZO_COMMAND_LENGTH);
@@ -27,16 +53,16 @@ ezo_response EZO::disableContinuousReadings(){
 }
 ezo_response EZO::queryContinuousReadings(){
 	if ( _i2c_address != 0 ) {
-		_continuous_mode = EZO_OFF;
+		_continuous_mode = TRI_OFF;
 		return EZO_RESPONSE_NA; // i2c mode has no continuous mode
 	}
 	strncpy(_command,"C,?\r",EZO_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,true);
-	_continuous_mode = EZO_UNKNOWN;
+	_continuous_mode = TRI_UNKNOWN;
 	// _result will be "?C,<0|1>\r"
 	if ( _result[0] == '?' && _result[1] == 'C' && _result[2] == ',') {
-		if ( _result[3] == '0')      _continuous_mode = EZO_OFF;
-		else if ( _result[3] == '1') _continuous_mode = EZO_ON;
+		if ( _result[3] == '0')      _continuous_mode = TRI_OFF;
+		else if ( _result[3] == '1') _continuous_mode = TRI_ON;
 	}
 	return response;
 }
@@ -55,6 +81,23 @@ ezo_response EZO::queryName(){
 	return response;
 }
 
+ezo_response EZO::queryInfo(){
+	strncpy(_command,"I\r",EZO_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// reply is in the format "?I,<device>,<firmware>\r"
+
+
+
+	char * pch;
+	pch = strtok(_result+ 3,",\r");
+	if      ( !_strCmp(pch,"DO"))  _circuit_type = EZO_DO_CIRCUIT;
+	else if ( !_strCmp(pch,"EC"))  _circuit_type = EZO_EC_CIRCUIT;
+	else if ( !_strCmp(pch,"ORP")) _circuit_type = EZO_ORP_CIRCUIT;
+	else if ( !_strCmp(pch,"PH"))  _circuit_type = EZO_PH_CIRCUIT;
+	pch = strtok(NULL, ",");
+	strncpy(_firmware,pch,6);	
+	return response;	
+}
 ezo_response EZO::enableLED(){
 	strncpy(_command,"L,1\r",EZO_COMMAND_LENGTH);
 	return _sendCommand(_command,false,true);
@@ -66,12 +109,12 @@ ezo_response EZO::disableLED(){
 ezo_response EZO::queryLED(){
 	strncpy(_command,"L,?\r",EZO_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,true);
-	_led = EZO_UNKNOWN;
+	_led = TRI_UNKNOWN;
 	// Parse _result
 	// Format: "?L,<1|0>\r"
 	if ( _result[0] == '?' && _result[1] == 'L' && _result[2] == ',') {
-		if ( _result[3] == '0')      _led = EZO_OFF;
-		else if ( _result[3] == '1') _led = EZO_ON;
+		if ( _result[3] == '0')      _led = TRI_OFF;
+		else if ( _result[3] == '1') _led = TRI_ON;
 	}
 	return response;
 }
@@ -99,7 +142,7 @@ ezo_response EZO::disableResponse(){
 }
 tristate EZO::queryResponse() {
 	if ( _i2c_address != 0 ) {
-		_response_mode = EZO_ON;  // Always on for i2c
+		_response_mode = TRI_ON;  // Always on for i2c
 	}
 	else {
 		// See if _response_mode is ON
@@ -108,16 +151,16 @@ tristate EZO::queryResponse() {
 		// Parse _result. Reply should be "?RESPONSE,<1|0>\r";
 		Serial.print("Response mode is:");
 		if ( _result[0] == '?' && _result[10] == '1') {
-			_response_mode = EZO_ON;
+			_response_mode = TRI_ON;
 			Serial.println("ON");
 		}
 		else if ( _result[0] == '?' && _result[10] == '0') {
 			Serial.println("ON");
-			_response_mode = EZO_OFF;
+			_response_mode = TRI_OFF;
 		}
 		else {
 			Serial.println("UNKNOWN");
-			_response_mode = EZO_UNKNOWN; // DEFAULT
+			_response_mode = TRI_UNKNOWN; // DEFAULT
 		}
 	}
 	return _response_mode;
@@ -213,13 +256,14 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, bool has_respons
 }
 
 ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response) {
+	if ( offline() ) return EZO_RESPONSE_OL;
 	char byte_to_send = command[0];
 	if ( _i2c_address == 0 ) {
 		//uint8_t command_len = sizeof(&command);
 		Serial.print("Sending command:");
 		uint8_t i = 0;
 		while (byte_to_send != 0 && i < EZO_COMMAND_LENGTH) {
-			Serial_EZO->write((uint8_t)byte_to_send);
+			Serial_AS->write((uint8_t)byte_to_send);
 			if ( byte_to_send == '\r' ) Serial.println("<CR>");
 			else Serial.write((char)byte_to_send);
 			i++;
@@ -233,7 +277,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 		}
 		if ( has_response ) {
 			delay(300);
-			if ( Serial_EZO->peek() == '*' || _response_mode == EZO_ON  || _response_mode == EZO_UNKNOWN ) {
+			if ( Serial_AS->peek() == '*' || _response_mode == TRI_ON  || _response_mode == TRI_UNKNOWN ) {
 				_last_response = _getResponse();
 			}
 			else _last_response = EZO_RESPONSE_UK;
@@ -253,18 +297,19 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 }
 
 ezo_response EZO::_getResponse(){ // Serial only
+	if ( offline() ) return EZO_RESPONSE_OL;
 	// If _resonse_mode is ON, check for command response.
 	// Response should be a two letter code preceded by '*'
 	char _code[] = "UK";
-	if ( Serial_EZO->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
-	_response_len = Serial_EZO->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
+	if ( Serial_AS->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
+	_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
 	Serial.print("Got response:"); Serial.println(_response);
 	// format: "*<ezo_response>\r"
 	if ( _response[0] == '*' ) {
 		_code[0] = _response[1];
 		_code[1] = _response[2];
 	}
-	if (_response_mode != EZO_ON) _last_response = EZO_RESPONSE_NA;
+	if (_response_mode != TRI_ON) _last_response = EZO_RESPONSE_NA;
 	else if ( !_strCmp(_code,"OK"))        _last_response = EZO_RESPONSE_OK;
 	else if ( !_strCmp(_code,"ER"))        _last_response = EZO_RESPONSE_ER;
 	else if ( !_strCmp(_code,"OV"))        _last_response = EZO_RESPONSE_OV;
@@ -301,7 +346,7 @@ void EZO::_geti2cResult(){
 void EZO::_getResult(uint16_t result_delay){
 	// read last message from Serial_EZO and save it to _result.
 	if ( result_delay ) _delayUntilSerialData(result_delay);
-	_result_len = Serial_EZO->readBytesUntil('\r',_result,EZO_SERIAL_RESULT_LEN);
+	_result_len = Serial_AS->readBytesUntil('\r',_result,EZO_SERIAL_RESULT_LEN);
 	_result[_result_len] = 0; // null terminate
 	Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);
 }
@@ -316,8 +361,8 @@ uint16_t EZO::flushSerial(){
 	uint16_t flushed = 0;
 	char byte_read;
 	Serial.print("Flushing:");
-	while (Serial_EZO->available()) {
-		byte_read = Serial_EZO->read();
+	while (Serial_AS->available()) {
+		byte_read = Serial_AS->read();
 		flushed++;
 		if ( byte_read == '\r' ) Serial.println();
 		else Serial.print(byte_read);
@@ -331,7 +376,7 @@ int16_t EZO::_delayUntilSerialData(uint32_t delay_millis){
 	int16_t peek_byte;
 	while ( (millis() - _request_start) <= delay_millis)
 	{
-		peek_byte = Serial_EZO->peek();
+		peek_byte = Serial_AS->peek();
 		if ( peek_byte != -1 ) return peek_byte;
 	}
 	return -1;
@@ -352,6 +397,7 @@ void EZO_DO::initialize() {
 	sprintf(buf,"Continuous result: %s.",getResult());
 	Serial.println(buf);
 	queryStatus();
+	queryInfo();
 	queryOutput();
 	printOutputs();
 	queryTempComp();
@@ -374,13 +420,13 @@ ezo_response EZO_DO::queryOutput() {
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
 	if (_result[0] == '?' && _result[1] == 'O' && _result[2] == ',') {
-		_sat_output  = EZO_OFF;
-		_dox_output = EZO_OFF;
+		_sat_output  = TRI_OFF;
+		_dox_output = TRI_OFF;
 		char * pch;
 		pch = strtok(_result+ 3,",");
 		while ( pch != NULL) {
-			if ( !_strCmp(pch,"%"))  _sat_output  = EZO_ON;
-			if ( !_strCmp(pch,"DO")) _dox_output = EZO_ON;
+			if ( !_strCmp(pch,"%"))  _sat_output  = TRI_ON;
+			if ( !_strCmp(pch,"DO")) _dox_output = TRI_ON;
 			pch = strtok(NULL, ",");
 		}
 	}
@@ -389,10 +435,10 @@ ezo_response EZO_DO::queryOutput() {
 
 void  EZO_DO::printOutputs(){
 	Serial.print("DO outputs:");
-	if ( _sat_output == EZO_ON ) Serial.print("SAT % ");
-	else if ( _sat_output == EZO_UNKNOWN )  Serial.print("?SAT % ");
-	if ( _dox_output == EZO_ON ) Serial.print("DOX MGL ");
-	else if ( _dox_output == EZO_UNKNOWN )  Serial.print("?DOX MGL ");
+	if ( _sat_output == TRI_ON ) Serial.print("SAT % ");
+	else if ( _sat_output == TRI_UNKNOWN )  Serial.print("?SAT % ");
+	if ( _dox_output == TRI_ON ) Serial.print("DOX MGL ");
+	else if ( _dox_output == TRI_UNKNOWN )  Serial.print("?DOX MGL ");
 	Serial.println();
 }
 tristate EZO_DO::getOutput(do_output output) {
@@ -400,7 +446,7 @@ tristate EZO_DO::getOutput(do_output output) {
 		case DO_OUT_PERCENT_SAT: return _sat_output;
 		case DO_OUT_DO_MGL: return _dox_output;
 	}
-	return EZO_UNKNOWN;
+	return TRI_UNKNOWN;
 }
 
 
@@ -522,6 +568,7 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 	sprintf(buf,"Continuous result: %s.",getResult());
 	Serial.println(buf);
 	queryStatus();
+	queryInfo();
 	queryCalibration();
 	queryK();
 	queryOutput();
@@ -580,17 +627,17 @@ ezo_response EZO_EC::queryOutput() {
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
 	if (_result[0] == '?' && _result[1] == 'O' && _result[2] == ',') {
-		_ec_output  = EZO_OFF;
-		_tds_output = EZO_OFF;
-		_s_output   = EZO_OFF;
-		_sg_output  = EZO_OFF;
+		_ec_output  = TRI_OFF;
+		_tds_output = TRI_OFF;
+		_s_output   = TRI_OFF;
+		_sg_output  = TRI_OFF;
 		char * pch;
 		pch = strtok(_result+ 3,",");
 		while ( pch != NULL) {
-			if ( !_strCmp(pch,"EC"))  _ec_output  = EZO_ON;
-			if ( !_strCmp(pch,"TDS")) _tds_output = EZO_ON;
-			if ( !_strCmp(pch,"S"))   _s_output   = EZO_ON;
-			if ( !_strCmp(pch,"SG"))  _sg_output  = EZO_ON;
+			if ( !_strCmp(pch,"EC"))  _ec_output  = TRI_ON;
+			if ( !_strCmp(pch,"TDS")) _tds_output = TRI_ON;
+			if ( !_strCmp(pch,"S"))   _s_output   = TRI_ON;
+			if ( !_strCmp(pch,"SG"))  _sg_output  = TRI_ON;
 			pch = strtok(NULL, ",");
 		}
 	}
@@ -598,14 +645,14 @@ ezo_response EZO_EC::queryOutput() {
 }
 void  EZO_EC::printOutputs(){
 	Serial.print("EC outputs:");
-	if ( _ec_output == EZO_ON ) Serial.print("EC ");
-	else if ( _ec_output == EZO_UNKNOWN )  Serial.print("?EC ");
-	if ( _tds_output == EZO_ON ) Serial.print("TDS ");
-	else if ( _tds_output == EZO_UNKNOWN )  Serial.print("?TDS ");
-	if ( _s_output == EZO_ON )   Serial.print("S ");
-	else if ( _s_output == EZO_UNKNOWN )  Serial.print("?S ");
-	if ( _sg_output == EZO_ON )  Serial.print("SG ");
-	else if ( _sg_output == EZO_UNKNOWN )  Serial.print("?SG ");
+	if ( _ec_output == TRI_ON ) Serial.print("EC ");
+	else if ( _ec_output == TRI_UNKNOWN )  Serial.print("?EC ");
+	if ( _tds_output == TRI_ON ) Serial.print("TDS ");
+	else if ( _tds_output == TRI_UNKNOWN )  Serial.print("?TDS ");
+	if ( _s_output == TRI_ON )   Serial.print("S ");
+	else if ( _s_output == TRI_UNKNOWN )  Serial.print("?S ");
+	if ( _sg_output == TRI_ON )  Serial.print("SG ");
+	else if ( _sg_output == TRI_UNKNOWN )  Serial.print("?SG ");
 	Serial.println();
  }
 tristate EZO_EC::getOutput(ec_output output) {
@@ -615,7 +662,7 @@ tristate EZO_EC::getOutput(ec_output output) {
 		case EC_OUT_S: return _s_output;
 		case EC_OUT_SG: return _sg_output;
 	}
-	return EZO_UNKNOWN;
+	return TRI_UNKNOWN;
 }
 ezo_response EZO_EC::querySingleReading() {
 	int8_t width;
@@ -686,7 +733,60 @@ ezo_response EZO_EC::_changeOutput(ec_output output,int8_t enable_output) {
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
 	return _sendCommand(_command,false,true);
 }
- /*              pH PUBLIC METHODS                      */
+/*              ORP PUBLIC METHODS                      */
+ void EZO_ORP::initialize() {
+	 char buf[40];
+	 // Get setup values
+	 delay(2000);
+	 flushSerial();
+	 Serial.println("Serial flushed, ");
+	 disableContinuousReadings();
+	 Serial.println("Continuous readings disabled.");
+	 queryResponse();
+	 queryContinuousReadings();
+	 sprintf(buf,"Continuous result: %s.",getResult()); Serial.println(buf);
+	 queryStatus();
+	 queryInfo();
+	 Serial.println("Initialization Done");
+	 
+}
+
+ezo_response EZO_ORP::clearCalibration(){
+	strncpy(_command,"Cal,clear\r",EZO_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_ORP::calibrate(uint32_t known_orp) {
+	_command_len = sprintf(_command,"Cal,%ld\r",known_orp);
+	return _sendCommand(_command,false,true);
+	
+}
+ezo_response EZO_ORP::calibrate(float known_orp) {
+	_command_len = sprintf(_command,"Cal,%6.2f\r",(double)known_orp);
+	return _sendCommand(_command,false,true);
+	
+}
+ezo_response EZO_ORP::queryCalibration() {
+	strncpy(_command,"Cal,?\r",EZO_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true); // with 2 sec timeout
+	// _result will be "?CAL,<0|1>\r"
+	_calibration_status = ORP_CAL_UNKNOWN;
+	if ( _result[0] == '?' && _result[1] == 'C' && _result[2] == 'A') {
+		if ( _result[5] == '0')      _calibration_status = ORP_CAL_NOT_CALIBRATED;
+		else if ( _result[5] == '1') _calibration_status = ORP_CAL_CALIBRATED;
+	}
+	return response;
+}
+ezo_response EZO_ORP::querySingleReading() {
+	 strncpy(_command,"R\r",EZO_COMMAND_LENGTH);
+	 ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
+	 strncpy(orp,_result,10);
+	 _orp = atof(orp);
+	 return response;
+}
+
+/*              ORP PRIVATE  METHODS                      */
+
+/*              pH PUBLIC METHODS                      */
  void EZO_PH::initialize() {
 	 char buf[40];
 	 // Get setup values
@@ -700,6 +800,7 @@ ezo_response EZO_EC::_changeOutput(ec_output output,int8_t enable_output) {
 	 sprintf(buf,"Continuous result: %s.",getResult());
 	 Serial.println(buf);
 	 queryStatus();
+	 queryInfo();
 	 Serial.println("Initialization Done");
 	 
  }

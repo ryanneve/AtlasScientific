@@ -1,34 +1,28 @@
-// Atlas Scientific  EZO sensor library
-// Based on Atlas Scientific EZO datasheets
-// DO v2.0
-// EC v2.4
-// PH v2.0
-// ORP not yet implemented
-// 1/12/2014 by Ryan Neve <Ryan@PlanktosInstruments.com>
-//
+/*============================================================================
+Atlas Scientific EZO sensor library code is placed under the GNU license
+Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
-/* ============================================
-Atlas Scientific EZO sensor library code is placed under the MIT license
-Copyright (c) 2015 Ryan Neve
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-===============================================*/
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+	
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+	
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	
+	Based on Atlas Scientific datasheets:
+		EZO DO	v2.0
+		EZO EC	v2.4
+		EZO ORP	v2.0
+		EZO PH	v2.0
+============================================================================*/
+#ifndef Atlas_EZO_h
+#define Atlas_EZO_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -37,6 +31,7 @@ THE SOFTWARE.
 #endif
 
 #include <HardwareSerial.h>
+#include <AtlasScientific/Atlas.h>
 
 #define DEFAULT_ATLAS_TIMEOUT 1100
 #define I2C_MIN_ADDRESS 1
@@ -78,12 +73,15 @@ const char EZO_RESPONSE_COMMAND[] = "RESPONSE";
 const char EZO_NAME_COMMAND[] = "NAME";
 
 enum ezo_circuit_type {
+	EZO_UNKNOWN_CIRCUIT,
 	EZO_DO_CIRCUIT,
 	EZO_EC_CIRCUIT,
-	EZO_pH_CIRCUIT
+	EZO_ORP_CIRCUIT,
+	EZO_PH_CIRCUIT
 };
 	
 enum ezo_response {
+	EZO_RESPONSE_OL,	// Circuit offline
 	EZO_RESPONSE_NA,	// Not in response mode
 	EZO_RESPONSE_UK,	// Unknown
 	EZO_RESPONSE_OK,	// Command accepted
@@ -110,26 +108,23 @@ enum restart_code {
 	EZO_RESTART_N	// none or no response
 };
 
-enum tristate {
-	EZO_UNKNOWN,
-	EZO_ON = true,
-	EZO_OFF = false
-};
-
 class EZO {
 	public:
 		EZO() { // default constructor
-			//Serial_EZO->begin(_baud_rate);
-			_continuous_mode = EZO_UNKNOWN;
-			_response_mode = EZO_UNKNOWN;
+			_continuous_mode = TRI_UNKNOWN;
+			_response_mode = TRI_UNKNOWN;
 			_last_response = EZO_RESPONSE_NA;
 			_i2c_address = 0;
 			_voltage = 0.0;
 			_temp_comp = 0.0;
-			_led = EZO_UNKNOWN;
+			_led = TRI_UNKNOWN;
+			_online = true;
+			_circuit_type = EZO_UNKNOWN_CIRCUIT;
+			strncpy(_firmware,"0.0",6);
 			strncpy(_name, "UNKNOWN",EZO_NAME_LENGTH);
 		}
 		void			begin();
+		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		ezo_response	enableContinuousReadings();
 		ezo_response	disableContinuousReadings();
 		ezo_response	queryContinuousReadings();
@@ -141,6 +136,8 @@ class EZO {
 		ezo_response	setName(char * name);
 		ezo_response	queryName();
 		char *			getName() {return _name;}
+		ezo_response	queryInfo();
+		char *			getInfo() {return _firmware;}
 		ezo_response	enableResponse();
 		ezo_response	disableResponse();
 		tristate		queryResponse();
@@ -155,18 +152,23 @@ class EZO {
 		ezo_response	queryTempComp();
 		float			getTempComp() {return _temp_comp;}
 		char *			getResult() { return _result;}
+		bool			online() { return _online;}
+		bool			offline() { return ! _online;}
+		void			setOnline() {_online = true;}
+		void			setOffline() {_online = false;}
 	protected:
 		ezo_response	_sendCommand(char * command, bool has_result, bool has_response);
 		ezo_response	_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response);
 		uint16_t		flushSerial();
 		uint8_t			_strCmp(const char *str1, const char *str2);
-		HardwareSerial 	* Serial_EZO;
+		HardwareSerial 	* Serial_AS;
 		uint32_t		_baud_rate;
 		uint8_t			_command_len;
 		char			_command[EZO_COMMAND_LENGTH];
 		char			_result[EZO_SERIAL_RESULT_LEN];
 		uint8_t			_result_len;
 		float			_temp_comp;
+		bool			_online;
 	private:
 		bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
@@ -176,6 +178,7 @@ class EZO {
 		int16_t			_delayUntilSerialData(uint32_t delay_millis);
 		tristate		_continuous_mode;
 		char 			 _name[EZO_NAME_LENGTH];
+		char			_firmware[6];
 		tristate		_response_mode; // Do we expect responses from EZO circuit
 		char			_response[EZO_RESPONSE_LENGTH]; // holds string response code "*xx\r" where xx is a two letter code.
 		uint8_t			_response_len; 
@@ -187,6 +190,54 @@ class EZO {
 		uint16_t		_i2c_address;
 		float			_voltage;
 		uint32_t		_request_timeout;
+};
+
+
+/*-------------------- DO --------------------*/
+const float DEFAULT_PRESSURE_KPA = 101.325;
+enum do_output {
+	DO_OUT_PERCENT_SAT,
+	DO_OUT_DO_MGL
+};
+
+class EZO_DO: public EZO {
+	public:
+	EZO_DO() {
+		_sat_output = TRI_UNKNOWN;
+		_dox_output = TRI_UNKNOWN;
+	}
+	void			initialize();
+	ezo_response	enableOutput(do_output output);
+	ezo_response	disableOutput(do_output output);
+	ezo_response	queryOutput();
+	tristate		getOutput(do_output output);
+	void			printOutputs();
+	ezo_response	querySingleReading();
+	ezo_response	setPresComp(float pressure_kpa);
+	ezo_response	queryPresComp();
+	float			getPressure() {return _pressure;}
+	
+	ezo_response	setSalComp(uint32_t sal_us);
+	ezo_response	setSalPPTComp(float sal_ppt);
+	ezo_response	querySalComp();
+	
+	// How to combine these?
+	uint16_t		querySal();
+	float			querySalPPT();
+	float			getSat() {return _sat;}
+	float			getDOx() { return _dox;}
+	char			sat[10];
+	char			dox[10];
+	protected:
+	private:
+	ezo_response	_changeOutput(do_output output,int8_t enable_output);
+	tristate		_sat_output;
+	tristate		_dox_output;
+	float			_sat;
+	float			_dox;
+	float			_pressure;
+	uint32_t		_sal_us_comp;
+	float			_sal_ppt_comp;
 };
 
 /*-------------------- EC --------------------*/
@@ -219,20 +270,17 @@ enum ec_cal_status {
 
 class EZO_EC: public EZO {
 	public:
-		EZO_EC(HardwareSerial *serial,uint32_t baud_rate) {
-			Serial_EZO = serial;
-			_baud_rate = baud_rate;
+		EZO_EC() {
 			_k = -1.0; // Unknown
-			_ec_output = EZO_UNKNOWN;
-			_tds_output = EZO_UNKNOWN;
-			_s_output = EZO_UNKNOWN;
-			_sg_output = EZO_UNKNOWN;
+			_ec_output = TRI_UNKNOWN;
+			_tds_output = TRI_UNKNOWN;
+			_s_output = TRI_UNKNOWN;
+			_sg_output = TRI_UNKNOWN;
 			_ec = 0.0;
 			_tds = 0.0;
 			_sal = 0.0;
 			_sg = 0.0;
 		}
-		
 		void			initialize();
 		ezo_response	calibrate(ec_calibration_command command);
 		ezo_response	calibrate(ec_calibration_command command,uint32_t standard);
@@ -270,62 +318,38 @@ class EZO_EC: public EZO {
 		float			_sg;
 };
 
-/*-------------------- DO --------------------*/
-const float DEFAULT_PRESSURE_KPA = 101.325;
-enum do_output {
-	DO_OUT_PERCENT_SAT,
-	DO_OUT_DO_MGL
+/*-------------------- ORP --------------------*/
+
+enum orp_cal_status {
+	ORP_CAL_UNKNOWN,
+	ORP_CAL_NOT_CALIBRATED = false,
+	ORP_CAL_CALIBRATED = true
 };
 
-class EZO_DO: public EZO {
+class EZO_ORP: public EZO {
 	public:
-		EZO_DO(HardwareSerial *serial,uint32_t baud_rate) {
-			Serial_EZO = serial;
-			_baud_rate = baud_rate;
-			_sat_output = EZO_UNKNOWN;
-			_dox_output = EZO_UNKNOWN;
+		EZO_ORP() {
+			_orp = 0.0;
 		}
 		void			initialize();
-		ezo_response	enableOutput(do_output output);
-		ezo_response	disableOutput(do_output output);
-		ezo_response	queryOutput();
-		tristate		getOutput(do_output output);
-		void			printOutputs();
+		ezo_response	clearCalibration();
+		ezo_response	calibrate(uint32_t known_orp);
+		ezo_response	calibrate(float known_orp);
+		ezo_response	queryCalibration();
+		orp_cal_status	getCalStatus(){return _calibration_status;}
 		ezo_response	querySingleReading();
-		ezo_response	setPresComp(float pressure_kpa);
-		ezo_response	queryPresComp();
-		float			getPressure() {return _pressure;}
-		
-		ezo_response	setSalComp(uint32_t sal_us);
-		ezo_response	setSalPPTComp(float sal_ppt);
-		ezo_response	querySalComp();
-		
-		// How to combine these?
-		uint16_t		querySal();
-		float			querySalPPT();
-		float			getSat() {return _sat;}
-		float			getDOx() { return _dox;}
-		char			sat[10];
-		char			dox[10];
-	protected:
+		char			orp[10];
 	private:
-		ezo_response	_changeOutput(do_output output,int8_t enable_output);
-		tristate		_sat_output;
-		tristate		_dox_output;
-		float			_sat;
-		float			_dox;
-		float			_pressure;
-		uint32_t		_sal_us_comp;
-		float			_sal_ppt_comp;
+		float			_orp;
+		orp_cal_status	_calibration_status;
 };
 
 /*-------------------- pH --------------------*/
 
 class EZO_PH: public EZO {
 	public:
-		EZO_PH(HardwareSerial *serial,uint32_t baud_rate) {
-			Serial_EZO = serial;
-			_baud_rate = baud_rate;
+		EZO_PH() {
+			_ph = 0.0;
 		}
 		void			initialize();
 		ezo_response	querySingleReading();
@@ -333,3 +357,6 @@ class EZO_PH: public EZO {
 	private:
 		float	_ph;
 };
+
+
+#endif
