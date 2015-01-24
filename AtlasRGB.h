@@ -34,9 +34,9 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #include <AtlasScientific/Atlas.h>
 
 #define BAUD_RATE_RGB_DEFAULT 38400
-#define RGB_COMMAND_LENGTH 10
+//#define ATLAS_COMMAND_LENGTH 10
 #define DEFAULT_COMMAND_DELAY 1000
-#define RGB_SERIAL_RESULT_LEN 50
+//#define ATLAS_SERIAL_RESULT_LEN 50
 #define RGB_DATA_LEN 6
 /*
 R		Take a single color reading
@@ -47,40 +47,28 @@ M[1-3]	Set mode 1,2 or 3 (RGB only, lx only, RGB and lx simultaneously)
 */
 
 enum rgb_mode {
-	RGB_UNKNOWN,
+	RGB_UNKNOWN = 0,
 	RGB_DEFAULT = 1,
 	RGB_LUX		= 2,
 	RGB_ALL		= 3
 };
 
 
-class RGB {
+class RGB: public Atlas {
 	public:
 		RGB() {
-			_mode = RGB_UNKNOWN;
+			_rgb_mode = RGB_UNKNOWN;
 			_saturated = false;
 			_online = true;
 		}
-	/*
-		RGB(HardwareSerial *serial) {
-			RGB(serial,BAUD_RATE_RGB_DEFAULT);
-		}
-		RGB(HardwareSerial *serial,uint32_t baud_rate) {
-			Serial_RGB = serial;
-			_baud_rate = baud_rate;
-			_mode = RGB_UNKNOWN;
-			_saturated = false;
-		}*/
-		void			begin();
-		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		void			initialize();
 		tristate		querySingleReading();
 		void			enableContinuousReadings();
 		void			disableContinuousReadings();
 		tristate		queryContinuousReadings();
-		tristate		queryStatus();
+		tristate		queryInfo();
 		tristate		setMode(rgb_mode);
-		rgb_mode		getMode(){return _mode;}
+		rgb_mode		getMode(){return _rgb_mode;}
 		char *			getFirmwareVer(){return _firmware_version;}
 		char *			getFirmwareDate(){return _firmware_date;}\
 		uint16_t		getRed(){return _red;}
@@ -92,10 +80,6 @@ class RGB {
 		uint16_t		getLuxTotal(){return _lx_total;}
 		uint16_t		getLuxBeyond(){return _lx_beyond;}
 		bool			getSaturated(){return _saturated;}
-		bool			online() { return _online;}
-		bool			offline() { return ! _online;}
-		void			setOnline() {_online = true;}
-		void			setOffline() {_online = false;}
 		char			red[RGB_DATA_LEN];
 		char			green[RGB_DATA_LEN];
 		char			blue[RGB_DATA_LEN];
@@ -105,16 +89,10 @@ class RGB {
 		char			lx_total[RGB_DATA_LEN];  // Should be = lx_red + lx_green + lx_blue + lx_non_vis.
 		char			lx_beyond[RGB_DATA_LEN]; // lx beyond visible light spectrum
 	protected:
-		bool			_online;
 	private:
 		void			_sendCommand(char * command, bool has_result);
 		void			_sendCommand(char * command, bool has_result,uint16_t result_delay);
-		void			_getResult(uint16_t result_delay); // reads line into _result[]
-		uint16_t		flushSerial();
-		int16_t			_delayUntilSerialData(uint32_t delay_millis);
-		HardwareSerial*  Serial_RGB;
-		uint32_t		_baud_rate;
-		rgb_mode		_mode;
+		rgb_mode		_rgb_mode;
 		uint16_t		_red;
 		uint16_t		_green;
 		uint16_t		_blue;
@@ -126,8 +104,5 @@ class RGB {
 		bool			_saturated;
 		char			_firmware_version[10];
 		char			_firmware_date[10];
-		char			_command[RGB_COMMAND_LENGTH];
-		char			_result[RGB_SERIAL_RESULT_LEN];
-		uint8_t			_result_len;
 };
 #endif

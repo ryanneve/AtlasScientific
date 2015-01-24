@@ -26,25 +26,22 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
 /*               PUBLIC METHODS                      */
 
-
-void RGB::begin(HardwareSerial *serial,uint32_t baud_rate) {
-	_baud_rate = baud_rate;
-	Serial_RGB = serial;
-	begin();
-}
-void RGB::begin() {
-	Serial_RGB->begin(_baud_rate);
-	flushSerial();
-}
-
 void RGB::initialize(){
 	disableContinuousReadings();
-	queryStatus();
+	queryInfo();
 }
 
 tristate RGB::querySingleReading(){
-	strncpy(_command,"R\r",RGB_COMMAND_LENGTH);
+	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,true);
+	if ( _debug ) {
+		Serial.print("qSR got _result: "); Serial.println(_result);
+		Serial.print("_mode is: ");
+		if ( _rgb_mode == RGB_UNKNOWN) Serial.println("?");
+		if ( _rgb_mode == RGB_DEFAULT) Serial.println("RGB");
+		if ( _rgb_mode == RGB_LUX) Serial.println("lx");
+		if ( _rgb_mode == RGB_ALL) Serial.println("ALL");
+	}
 	// now parse _result
 	// response will depend on _mode.	
 	bool _red_parsed = false;
@@ -58,56 +55,64 @@ tristate RGB::querySingleReading(){
 	_saturated = false;
 	char * pch;
 	pch = strtok(_result,",\r");
+	bool parse_success;
 	while ( pch != NULL) {
-		if ( pch[0] == '*' ){
-			_saturated = true;
-		}
-		if ( _mode == RGB_DEFAULT || _mode == RGB_ALL ){
+		parse_success = false;
+		if ( _rgb_mode == RGB_DEFAULT || _rgb_mode == RGB_ALL ){
 			if ( ! _red_parsed ){
 				strncpy(red,pch,RGB_DATA_LEN);
 				_red = atoi(red);
 				_red_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _green_parsed ){
 				strncpy(green,pch,RGB_DATA_LEN);
 				_green = atoi(green);
 				_green_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _blue_parsed ){
 				strncpy(blue,pch,RGB_DATA_LEN);
 				_blue = atoi(red);
 				_blue_parsed = true;
+				parse_success = true;
 			}
 		}
-		if ( _mode == RGB_LUX || _mode == RGB_ALL ){
+		if ( !parse_success && ( _rgb_mode == RGB_LUX || _rgb_mode == RGB_ALL )){
 			if ( ! _lx_red_parsed){
 				strncpy(lx_red,pch,RGB_DATA_LEN);
 				_lx_red = atoi(lx_red);
 				_lx_red_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _lx_green_parsed){
 				strncpy(lx_green,pch,RGB_DATA_LEN);
 				_lx_green = atoi(lx_green);
 				_lx_green_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _lx_blue_parsed){
 				strncpy(lx_blue,pch,RGB_DATA_LEN);
 				_lx_blue = atoi(lx_blue);
 				_lx_blue_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _lx_total_parsed){
 				strncpy(lx_total,pch,RGB_DATA_LEN);
 				_lx_total = atoi(lx_total);
 				_lx_total_parsed = true;
+				parse_success = true;
 			}
 			else if ( ! _lx_beyond_parsed){
 				strncpy(lx_beyond,pch,RGB_DATA_LEN);
 				_lx_beyond = atoi(lx_beyond);
 				_lx_beyond_parsed = true;
+				parse_success = true;
 			}
 		}
 		if ( pch[0] == '*' ){
 			_saturated = true;
+			parse_success = true;
 		}
 		pch = strtok(NULL, ",\r");
 	}
@@ -116,29 +121,50 @@ tristate RGB::querySingleReading(){
 
 
 void RGB::enableContinuousReadings() {
-	strncpy(_command,"C\r",RGB_COMMAND_LENGTH);
+	strncpy(_command,"C\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,false);
 }
 
 void RGB::disableContinuousReadings() {
-	strncpy(_command,"E\r",RGB_COMMAND_LENGTH);
+	strncpy(_command,"E\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,false);
+	delay(1100); // Time for one last set of values
+	flushSerial();
 }
  
 tristate RGB::setMode(rgb_mode mode) {
-	char buf[RGB_COMMAND_LENGTH];
-	sprintf(buf,"M%d\r",mode);
+	tristate result = TRI_UNKNOWN;
+	_rgb_mode = mode;
+	sprintf(_command,"M%d\r",mode);
+	if ( _debug ) { Serial.print("Setting RGB Mode with command ");	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "[RGB|lx|RGB+lx]\r"
-	// parse _response and see if we succeeded
-	return TRI_ON;
+	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT)		result = TRI_ON;
+	else if ( !_strCmp(_result,"lx") && mode == RGB_LUX)		result = TRI_ON;
+	else if ( !_strCmp(_result,"RGB+lx") && mode == RGB_ALL)	result = TRI_ON;
+	else result = TRI_OFF;
+	return result;
 }
-tristate RGB::queryStatus(){
-	strncpy(_command,"I\r",RGB_COMMAND_LENGTH);
+tristate RGB::queryInfo(){
+	tristate result = TRI_UNKNOWN;
+	strncpy(_command,"I\r",ATLAS_COMMAND_LENGTH);
+	if ( _debug )  {Serial.print("Querying RGB info with command ");	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "C,V<version>,<date>\r". C is for Color.
-	// parse _response and see if we succeeded
-	return TRI_ON; // we did
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (pch[0] == 'C'){
+		result = TRI_ON;
+		pch = strtok(NULL, ",\r");
+		if ( pch[0] == 'V') {
+			// Parse version
+			strncpy(_firmware_version,pch,sizeof(_firmware_version));
+		}
+		pch = strtok(NULL, ",\r");
+		strncpy(_firmware_date,pch,sizeof(_firmware_version));
+	}
+	else result = TRI_OFF;
+	return result;
 }
 
 /*              PRIVATE METHODS                      */
@@ -147,46 +173,10 @@ void RGB::_sendCommand(char * command, bool has_result){
 	_sendCommand(command,has_result,DEFAULT_COMMAND_DELAY);
 }
 void RGB::_sendCommand(char * command, bool has_result,uint16_t result_delay){
-	if ( online() ) Serial_RGB->print(command);
+	if ( online() ) Serial_AS->print(command);
 	if ( has_result ) {
 		int16_t byte_found = _delayUntilSerialData(10000);
 		if ( byte_found == -1 ) Serial.println("No data found while waiting for result");
 		_getResult(result_delay);
 	}
 }
-void RGB::_getResult(uint16_t result_delay){
-	// read last message from Serial_EZO and save it to _result.
-	if ( result_delay ) _delayUntilSerialData(result_delay);
-	if ( online() ) _result_len = Serial_RGB->readBytesUntil('\r',_result,RGB_SERIAL_RESULT_LEN);
-	else _result_len = 0;
-	_result[_result_len] = 0; // null terminate
-	Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);
-}
-
-uint16_t RGB::flushSerial(){
-	if ( offline() ) return 0;
-	uint16_t flushed = 0;
-	char byte_read;
-	Serial.print("Flushing RGB:");
-	while (Serial_RGB->available()) {
-		byte_read = Serial_RGB->read();
-		flushed++;
-		if ( byte_read == '\r' ) Serial.println();
-		else Serial.print(byte_read);
-	}
-	Serial.println(':');
-	return flushed;
-}
-
-int16_t RGB::_delayUntilSerialData(uint32_t delay_millis){
-	if ( offline() ) return -1;
-	uint32_t _request_start = millis();
-	int16_t peek_byte;
-	while ( (millis() - _request_start) <= delay_millis)
-	{
-		peek_byte = Serial_RGB->peek();
-		if ( peek_byte != -1 ) return peek_byte;
-	}
-	return -1;
-}
-

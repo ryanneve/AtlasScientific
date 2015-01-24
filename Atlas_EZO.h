@@ -36,37 +36,8 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #define DEFAULT_ATLAS_TIMEOUT 1100
 #define I2C_MIN_ADDRESS 1
 #define I2C_MAX_ADDRESS 127
-#define EZO_SERIAL_RESULT_LEN 50 // 48 should be max
-#define EZO_COMMAND_LENGTH 20
 #define EZO_NAME_LENGTH 20
 #define EZO_RESPONSE_LENGTH 10
-// Common
-// C		Enable / Disable or Query continuous readings  (pg.16) Enabled
-// I		Device information  (pg.25) N/A
-// I2C		Sets the I 2 C ID number  (pg.31) Not set
-// L		Enable / Disable or Query the LEDs  (pg.15) LEDs Enabled
-// Name		Set or Query the name of the device  (pg.24) Not set
-// Response	Enable / Disable or Query response code  (pg.26) Enabled
-// Serial	Set the baud rate  (pg.29)
-// Sleep	Enter low power sleep mode  (pg.28) N/A
-// Status	Retrieve status information  (pg.27) N/A
-// T		Temperature compensation (pg.18)
-// X		Factory reset  (pg.30) N/A
-
-// DO Device Specific
-// O		Enable / Disable or Query parts of the output string  (pg.20) All Enabled
-// P		Pressure compensation (pg.20)
-// R		Returns a single reading  (pg.17) N/A
-// S		Salinity compensation (pg.19)
-
-// EC specific
-// Cal		Performs calibration  (pg.22) User must calibrate
-// K		Set or Query the probe K constant  (pg.18)   K=1.0
-// O		Enable / Disable or Query parts of the output string  (pg.20) All Enabled
-// R		Returns a single reading  (pg.17) N/A
-
-// pH Device Specific
-// R		Returns a single reading  (pg.17) N/A
 
 
 const char EZO_RESPONSE_COMMAND[] = "RESPONSE";
@@ -108,7 +79,7 @@ enum restart_code {
 	EZO_RESTART_N	// none or no response
 };
 
-class EZO {
+class EZO: public Atlas {
 	public:
 		EZO() { // default constructor
 			_continuous_mode = TRI_UNKNOWN;
@@ -123,8 +94,6 @@ class EZO {
 			strncpy(_firmware,"0.0",6);
 			strncpy(_name, "UNKNOWN",EZO_NAME_LENGTH);
 		}
-		void			begin();
-		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		ezo_response	enableContinuousReadings();
 		ezo_response	disableContinuousReadings();
 		ezo_response	queryContinuousReadings();
@@ -152,30 +121,16 @@ class EZO {
 		ezo_response	queryTempComp();
 		float			getTempComp() {return _temp_comp;}
 		char *			getResult() { return _result;}
-		bool			online() { return _online;}
-		bool			offline() { return ! _online;}
-		void			setOnline() {_online = true;}
-		void			setOffline() {_online = false;}
 	protected:
 		ezo_response	_sendCommand(char * command, bool has_result, bool has_response);
 		ezo_response	_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response);
-		uint16_t		flushSerial();
-		uint8_t			_strCmp(const char *str1, const char *str2);
-		HardwareSerial 	* Serial_AS;
-		uint32_t		_baud_rate;
 		uint8_t			_command_len;
-		char			_command[EZO_COMMAND_LENGTH];
-		char			_result[EZO_SERIAL_RESULT_LEN];
-		uint8_t			_result_len;
 		float			_temp_comp;
-		bool			_online;
 	private:
 		bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
-		void			_getResult(uint16_t result_delay); // reads line into _result[]
 		void			_geti2cResult(); // NOT IMPLEMENTED YET
 		void			_getReading();
-		int16_t			_delayUntilSerialData(uint32_t delay_millis);
 		tristate		_continuous_mode;
 		char 			 _name[EZO_NAME_LENGTH];
 		char			_firmware[6];
@@ -216,21 +171,22 @@ class EZO_DO: public EZO {
 	ezo_response	setPresComp(float pressure_kpa);
 	ezo_response	queryPresComp();
 	float			getPressure() {return _pressure;}
-	
 	ezo_response	setSalComp(uint32_t sal_us);
+	uint32_t		getSalComp() {return _sal_us_comp;}
 	ezo_response	setSalPPTComp(float sal_ppt);
+	float			getSalPPTComp(){return _sal_ppt_comp;}
 	ezo_response	querySalComp();
-	
-	// How to combine these?
 	uint16_t		querySal();
 	float			querySalPPT();
 	float			getSat() {return _sat;}
 	float			getDOx() { return _dox;}
+		
 	char			sat[10];
 	char			dox[10];
 	protected:
 	private:
 	ezo_response	_changeOutput(do_output output,int8_t enable_output);
+	
 	tristate		_sat_output;
 	tristate		_dox_output;
 	float			_sat;
@@ -299,6 +255,7 @@ class EZO_EC: public EZO {
 		float			getTDS() { return _tds;}
 		float			getSAL() { return _sal;}
 		float			getSG()  { return _sg;}
+			
 		char			ec[10];
 		char			tds[10];
 		char			sal[10];
@@ -306,6 +263,7 @@ class EZO_EC: public EZO {
 	protected:
 	private:
 		ezo_response	_changeOutput(ec_output output,int8_t enable_output);
+		
 		float			_k;
 		ec_cal_status	_calibration_status;
 		tristate		_ec_output;
@@ -338,6 +296,7 @@ class EZO_ORP: public EZO {
 		ezo_response	queryCalibration();
 		orp_cal_status	getCalStatus(){return _calibration_status;}
 		ezo_response	querySingleReading();
+		
 		char			orp[10];
 	private:
 		float			_orp;
@@ -353,6 +312,7 @@ class EZO_PH: public EZO {
 		}
 		void			initialize();
 		ezo_response	querySingleReading();
+		
 		char	ph[10];
 	private:
 		float	_ph;
