@@ -31,7 +31,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
 //#include <stdint.h>
 #include <HardwareSerial.h>
-#include <AtlasScientific/Atlas.h>
+#include <Atlas.h>
 
 #define BAUD_RATE_RGB_DEFAULT 38400
 //#define ATLAS_COMMAND_LENGTH 10

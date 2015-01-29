@@ -31,7 +31,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #endif
 
 #include <HardwareSerial.h>
-#include <AtlasScientific/Atlas.h>
+#include <Atlas.h>
 
 #define DEFAULT_ATLAS_TIMEOUT 1100
 #define I2C_MIN_ADDRESS 1
