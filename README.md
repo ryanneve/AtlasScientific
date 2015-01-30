@@ -12,6 +12,7 @@
 
 * Circuit can be instantiated on any Serial port. Works with multiplexed ports
 * (almost) All commands supported.
+* Baud rate can be changed
 
 
 ## To be done: ##
@@ -22,6 +23,7 @@
 * Temperature logger
 * Need to finish calibrate() methods for DO,EC,ORP, PH
 * Need to add I2C functionality for EZO instruments. Some hooks provided.
+* Auto-set baud rate?
 
 One possible example would be a terminal program allowing user to pick UART and baud rate, then issue commands using methods. (partially done)
 
