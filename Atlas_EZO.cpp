@@ -22,7 +22,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 		PH	v2.0
 ============================================================================*/
 #include <HardwareSerial.h>
-#include <AtlasScientific/Atlas_EZO.h>
+#include <Atlas_EZO.h>
 
 
 /*              COMMON PUBLIC METHODS                      */
