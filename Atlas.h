@@ -42,6 +42,7 @@ class Atlas {
 	public:
 		void			begin();
 		void			begin(HardwareSerial *serial,uint32_t baud_rate);
+		uint32_t		getBaudRate() {return _baud_rate;}
 		bool			online() { return _online;}
 		bool			offline() { return ! _online;}
 		void			setOnline() {_online = true;}

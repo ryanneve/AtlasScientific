@@ -54,7 +54,7 @@ int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis){
 }
 
 void Atlas::_getResult(uint16_t result_delay){
-	// read last message from Serial_EZO and save it to _result.
+	// read last message from Serial_AS and save it to _result.
 	if ( result_delay ) _delayUntilSerialData(result_delay);
 	if ( online() ) _result_len = Serial_AS->readBytesUntil('\r',_result,ATLAS_SERIAL_RESULT_LEN);
 	else _result_len = 0;

@@ -22,7 +22,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 		PH	v2.0
 ============================================================================*/
 #include <HardwareSerial.h>
-#include <Atlas_EZO.h>
+#include <AtlasScientific/Atlas_EZO.h>
 
 
 /*              COMMON PUBLIC METHODS                      */
@@ -176,7 +176,7 @@ ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	// send command to circuit
 	_command_len = sprintf(_command,"SERIAL,%lu\r",_baud_rate);
 	response = _sendCommand(_command,false,true);
-	//Serial_EZO->begin(_baud_rate); // This might better be done elsewhere....
+	Serial_AS->begin(_baud_rate); // This might better be done elsewhere....
 	return response;
 }
 
