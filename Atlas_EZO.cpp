@@ -56,6 +56,42 @@ ezo_response EZO::queryContinuousReadings(){
 	return response;
 }
 
+
+ezo_response EZO::queryCalibration() {
+	strncpy(_command,"Cal,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// _result will be "?Cal,<n>\r"
+	char * pch;
+	pch = strtok(_result,",\r");
+	if ( !_strCmp(pch,"Cal,")) {
+		pch = strtok(NULL, ",\r"); // should be a single digit
+		_calibration_status	= EZO_CAL_UNKNOWN;
+		switch ( pch[0] ) {
+			case '0': // All
+				_calibration_status	= EZO_CAL_NOT_CALIBRATED;
+				break;
+			case '1': // All, but ORP is different
+				if ( _circuit_type == EZO_ORP_CIRCUIT ) _calibration_status	= EZO_CAL_CALIBRATED;
+				else _calibration_status	= EZO_CAL_SINGLE;
+				break;
+			case '2': // DO,EC,PH
+				_calibration_status	= EZO_CAL_DOUBLE;
+				break;
+			case '3':  // only PH
+				_calibration_status	= EZO_CAL_TRIPLE;
+				break;
+			default:
+				break;
+		}
+	}
+	return response;
+}
+
+ezo_response EZO::clearCalibration(){
+	strncpy(_command,"Cal,clear\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+
 ezo_response EZO::setName(char * name){
 	_command_len = sprintf(_command,"NAME,%s\r",name);
 	return _sendCommand(_command,false,true);
@@ -193,8 +229,8 @@ ezo_response EZO::wake(){
 ezo_response EZO::queryStatus(){
 	strncpy(_command,"STATUS\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command, true, true);
-	// _result should be in the format "?STATUS,<restart_code>,<voltage>\r"
-	// parse code into restart_code;
+	// _result should be in the format "?STATUS,<ezo_restart_code>,<voltage>\r"
+	// parse code into ezo_restart_code;
 	char code = 'U';
 	if ( _result[0] == '?' ) {
 		code = _result[8];
@@ -278,7 +314,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 		}
 		else _last_response = EZO_RESPONSE_NA;
 	}
-	else { // i2c
+	else { // i2c NOT DONE YET
 		// Send command via i2c
 		if ( has_result ) {
 			_geti2cResult(); // This get Response and Reply(data);
@@ -365,6 +401,12 @@ void EZO_DO::initialize() {
 	Serial.println("Initialization Done");
 	
 }
+
+
+ezo_response	setCalibrationAtm();
+ezo_response	setCalibrationAtm();
+ezo_response	clearCalibration();
+
 
 ezo_response EZO_DO::enableOutput(do_output output) {
 	 return _changeOutput(output,1);
@@ -533,32 +575,32 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 	queryOutput();
 	printOutputs();
 	queryTempComp();
-	enableOutput(EC_OUT_EC);
-	enableOutput(EC_OUT_TDS);
-	enableOutput(EC_OUT_S);
-	enableOutput(EC_OUT_SG);
+	enableOutput(EZO_EC_OUT_EC);
+	enableOutput(EZO_EC_OUT_TDS);
+	enableOutput(EZO_EC_OUT_S);
+	enableOutput(EZO_EC_OUT_SG);
 	Serial.println("Initialization Done");
  }
- ezo_response EZO_EC::calibrate(ec_calibration_command command) {
-	// NOT YET IMPLEMENTED
-	return EZO_RESPONSE_UK;
+ 
+ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_standard) {
+	// NOT YET TESTED
+	ezo_response response = EZO_RESPONSE_UK;
+	switch ( command ){
+		case EZO_EC_CAL_CLEAR:	snprintf(_command,ATLAS_COMMAND_LENGTH,"Cal,clear\r");	ec_standard = 1;	break;
+		case EZO_EC_CAL_DRY:	snprintf(_command,ATLAS_COMMAND_LENGTH,"Cal,dry\r");	ec_standard = 1;	break;
+		case EZO_EC_CAL_ONE:	snprintf(_command,ATLAS_COMMAND_LENGTH,"Cal,one,%lu\r",ec_standard);		break;
+		case EZO_EC_CAL_LOW:	snprintf(_command,ATLAS_COMMAND_LENGTH,"Cal,low,%lu\r",ec_standard);		break;
+		case EZO_EC_CAL_HIGH:	snprintf(_command,ATLAS_COMMAND_LENGTH,"Cal,high,%lu\r",ec_standard);		break;
+		case EZO_EC_CAL_QUERY:	response = queryCalibration(); ec_standard = 0;	break;
+		default:			ec_standard = 0;	break;
+	}
+	if ( ec_standard ) {
+		response = _sendCommand(_command,false,true);
+	}
+	return response;
  }
- ezo_response EZO_EC::calibrate(ec_calibration_command command,uint32_t standard) {
-	 // NOT YET IMPLEMENTED
-	 return EZO_RESPONSE_UK;
- }
- ezo_response EZO_EC::queryCalibration() {
-	 strncpy(_command,"Cal,?\r",ATLAS_COMMAND_LENGTH);
-	 ezo_response response = _sendCommand(_command,true,true);
-	 // _result will be "?Cal,<0|1|2>\r"
-	 _calibration_status = EC_CAL_UNKNOWN;
-	 if ( _result[0] == '?' && _result[1] == 'C' && _result[2] == 'a') {
-		 if ( _result[5] == '0') _calibration_status = EC_CAL_NOT_CALIBRATED;
-		 else if ( _result[5] == '1') _calibration_status = EC_CAL_SINGLE;
-		 else if ( _result[5] == '2') _calibration_status = EC_CAL_DOUBLE;
-	 }
-	 return response;
- }
+
+
  
  ezo_response EZO_EC::setK(float k) {
 	 _command_len = sprintf(_command,"K,%4.1f\r",(double)k);
@@ -575,10 +617,10 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 	 }
 	 return response;
 }
-ezo_response EZO_EC::enableOutput(ec_output output) {
+ezo_response EZO_EC::enableOutput(ezo_ec_output output) {
 	return _changeOutput(output,1);
 }
-ezo_response EZO_EC::disableOutput(ec_output output) {
+ezo_response EZO_EC::disableOutput(ezo_ec_output output) {
 	return _changeOutput(output,0);
 }
 ezo_response EZO_EC::queryOutput() {
@@ -586,14 +628,14 @@ ezo_response EZO_EC::queryOutput() {
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
 	if (_result[0] == '?' && _result[1] == 'O' && _result[2] == ',') {
-		_ec_output  = TRI_OFF;
+		_ezo_ec_output  = TRI_OFF;
 		_tds_output = TRI_OFF;
 		_s_output   = TRI_OFF;
 		_sg_output  = TRI_OFF;
 		char * pch;
 		pch = strtok(_result+ 3,",\r");
 		while ( pch != NULL) {
-			if ( !_strCmp(pch,"EC"))  _ec_output  = TRI_ON;
+			if ( !_strCmp(pch,"EC"))  _ezo_ec_output  = TRI_ON;
 			if ( !_strCmp(pch,"TDS")) _tds_output = TRI_ON;
 			if ( !_strCmp(pch,"S"))   _s_output   = TRI_ON;
 			if ( !_strCmp(pch,"SG"))  _sg_output  = TRI_ON;
@@ -605,8 +647,8 @@ ezo_response EZO_EC::queryOutput() {
 void  EZO_EC::printOutputs(){
 	// No need to check _debug here
 	Serial.print("EC outputs:");
-	if ( _ec_output == TRI_ON ) Serial.print("EC ");
-	else if ( _ec_output == TRI_UNKNOWN )  Serial.print("?EC ");
+	if ( _ezo_ec_output == TRI_ON ) Serial.print("EC ");
+	else if ( _ezo_ec_output == TRI_UNKNOWN )  Serial.print("?EC ");
 	if ( _tds_output == TRI_ON ) Serial.print("TDS ");
 	else if ( _tds_output == TRI_UNKNOWN )  Serial.print("?TDS ");
 	if ( _s_output == TRI_ON )   Serial.print("S ");
@@ -615,12 +657,12 @@ void  EZO_EC::printOutputs(){
 	else if ( _sg_output == TRI_UNKNOWN )  Serial.print("?SG ");
 	Serial.println();
  }
-tristate EZO_EC::getOutput(ec_output output) {
+tristate EZO_EC::getOutput(ezo_ec_output output) {
 	switch (output) {
-		case EC_OUT_EC: return _ec_output;
-		case EC_OUT_TDS: return _tds_output;
-		case EC_OUT_S: return _s_output;
-		case EC_OUT_SG: return _sg_output;
+		case EZO_EC_OUT_EC: return _ezo_ec_output;
+		case EZO_EC_OUT_TDS: return _tds_output;
+		case EZO_EC_OUT_S: return _s_output;
+		case EZO_EC_OUT_SG: return _sg_output;
 	}
 	return TRI_UNKNOWN;
 }
@@ -636,7 +678,7 @@ ezo_response EZO_EC::querySingleReading() {
 	char * pch;
 	pch = strtok(_result+ 3,",\r");
 	while ( pch != NULL) {
-		if ( _ec_output && !ec_parsed) {
+		if ( _ezo_ec_output && !ec_parsed) {
 			_ec = atof(pch);
 			ec_parsed = true;
 			if ( _ec <= 999.9 ) width = 5;
@@ -681,18 +723,18 @@ ezo_response EZO_EC::querySingleReading() {
 
 /*              EC PRIVATE  METHODS                      */
 
-ezo_response EZO_EC::_changeOutput(ec_output output,int8_t enable_output) {
+ezo_response EZO_EC::_changeOutput(ezo_ec_output output,int8_t enable_output) {
 	// format is "O,[parameter],[0|1]\r"
 	uint8_t PARAMETER_LEN = 10;
 	char parameter[PARAMETER_LEN];
 	switch (output) {
-		case EC_OUT_EC:
+		case EZO_EC_OUT_EC:
 		strncpy(parameter,"EC",PARAMETER_LEN); break;
-		case EC_OUT_TDS:
+		case EZO_EC_OUT_TDS:
 		strncpy(parameter,"TDS",PARAMETER_LEN); break;
-		case EC_OUT_S:
+		case EZO_EC_OUT_S:
 		strncpy(parameter,"S",PARAMETER_LEN); break;
-		case EC_OUT_SG:
+		case EZO_EC_OUT_SG:
 		strncpy(parameter,"SG",PARAMETER_LEN); break;
 	}
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
@@ -717,10 +759,7 @@ ezo_response EZO_EC::_changeOutput(ec_output output,int8_t enable_output) {
 	 
 }
 
-ezo_response EZO_ORP::clearCalibration(){
-	strncpy(_command,"Cal,clear\r",ATLAS_COMMAND_LENGTH);
-	return _sendCommand(_command,false,true);
-}
+/*
 ezo_response EZO_ORP::calibrate(uint32_t known_orp) {
 	_command_len = sprintf(_command,"Cal,%ld\r",known_orp);
 	return _sendCommand(_command,false,true);
@@ -731,17 +770,7 @@ ezo_response EZO_ORP::calibrate(float known_orp) {
 	return _sendCommand(_command,false,true);
 	
 }
-ezo_response EZO_ORP::queryCalibration() {
-	strncpy(_command,"Cal,?\r",ATLAS_COMMAND_LENGTH);
-	ezo_response response = _sendCommand(_command,true,true); // with 2 sec timeout
-	// _result will be "?CAL,<0|1>\r"
-	_calibration_status = ORP_CAL_UNKNOWN;
-	if ( _result[0] == '?' && _result[1] == 'C' && _result[2] == 'A') {
-		if ( _result[5] == '0')      _calibration_status = ORP_CAL_NOT_CALIBRATED;
-		else if ( _result[5] == '1') _calibration_status = ORP_CAL_CALIBRATED;
-	}
-	return response;
-}
+*/
 ezo_response EZO_ORP::querySingleReading() {
 	 strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	 ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout

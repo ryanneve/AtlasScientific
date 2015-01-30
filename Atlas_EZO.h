@@ -31,7 +31,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #endif
 
 #include <HardwareSerial.h>
-#include <Atlas.h>
+#include <AtlasScientific/Atlas.h>
 
 #define DEFAULT_ATLAS_TIMEOUT 1100
 #define I2C_MIN_ADDRESS 1
@@ -70,13 +70,22 @@ enum ezo_response {
 	EZO_I2C_RESPONSE_UK		// UnKnown
 };
 
-enum restart_code {
+enum ezo_restart_code {
 	EZO_RESTART_P,	// Power on reset
 	EZO_RESTART_S,	// Software reset
 	EZO_RESTART_B,	// brown our reset
 	EZO_RESTART_W,	// Watchdog reset
 	EZO_RESTART_U,	// unknown
 	EZO_RESTART_N	// none or no response
+};
+
+enum ezo_cal_status {
+	EZO_CAL_UNKNOWN,
+	EZO_CAL_CALIBRATED, // ORP only
+	EZO_CAL_NOT_CALIBRATED,
+	EZO_CAL_SINGLE,
+	EZO_CAL_DOUBLE,
+	EZO_CAL_TRIPLE // PH only
 };
 
 class EZO: public Atlas {
@@ -91,12 +100,16 @@ class EZO: public Atlas {
 			_led = TRI_UNKNOWN;
 			_online = true;
 			_circuit_type = EZO_UNKNOWN_CIRCUIT;
+			_calibration_status = EZO_CAL_UNKNOWN;
 			strncpy(_firmware,"0.0",6);
 			strncpy(_name, "UNKNOWN",EZO_NAME_LENGTH);
 		}
 		ezo_response	enableContinuousReadings();
 		ezo_response	disableContinuousReadings();
 		ezo_response	queryContinuousReadings();
+		ezo_response	queryCalibration();
+		ezo_cal_status	getCalibration(){return _calibration_status;}
+		ezo_response	clearCalibration();
 		ezo_response	setI2CAddress(uint8_t address);
 		ezo_response	enableLED();
 		ezo_response	disableLED();
@@ -114,7 +127,7 @@ class EZO: public Atlas {
 		ezo_response	sleep();
 		ezo_response	wake();
 		ezo_response	queryStatus();
-		restart_code	getStatus() {return _restart_code; }
+		ezo_restart_code	getStatus() {return _restart_code; }
 		float			getVoltage() {return _voltage;}
 		ezo_response	reset();
 		ezo_response	setTempComp(float temp_C);
@@ -126,6 +139,7 @@ class EZO: public Atlas {
 		ezo_response	_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response);
 		uint8_t			_command_len;
 		float			_temp_comp;
+		ezo_cal_status	_calibration_status;
 	private:
 		bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
@@ -141,7 +155,7 @@ class EZO: public Atlas {
 		ezo_circuit_type	_circuit_type;
 		tristate		_led;
 		char			_version[6];
-		restart_code	_restart_code;
+		ezo_restart_code	_restart_code;
 		uint16_t		_i2c_address;
 		float			_voltage;
 		uint32_t		_request_timeout;
@@ -155,6 +169,13 @@ enum do_output {
 	DO_OUT_DO_MGL
 };
 
+enum ezo_do_calibration_command {
+	EZO_DO_CAL_CLEAR,
+	EZO_DO_CAL_ATM,
+	EZO_DO_CAL_ZERO,
+	EZO_DO_CAL_QUERY
+};
+
 class EZO_DO: public EZO {
 	public:
 	EZO_DO() {
@@ -162,6 +183,7 @@ class EZO_DO: public EZO {
 		_dox_output = TRI_UNKNOWN;
 	}
 	void			initialize();
+	ezo_response	calibrate(ezo_do_calibration_command command);
 	ezo_response	enableOutput(do_output output);
 	ezo_response	disableOutput(do_output output);
 	ezo_response	queryOutput();
@@ -201,34 +223,29 @@ class EZO_DO: public EZO {
 
 const float EZO_EC_DEFAULT_TEMP = 25.1;
 
-enum ec_output {
-	EC_OUT_EC, 
-	EC_OUT_TDS,
-	EC_OUT_S,
-	EC_OUT_SG
+enum ezo_ec_output {
+	EZO_EC_OUT_EC, 
+	EZO_EC_OUT_TDS,
+	EZO_EC_OUT_S,
+	EZO_EC_OUT_SG
 };
 
-enum ec_calibration_command {
-	EC_CAL_CLEAR,
-	EC_CAL_DRY,
-	EC_CAL_ONE,
-	EC_CAL_LOW,
-	EC_CAL_HIGH,
-	EC_CAL_QUERY
+enum ezo_ec_calibration_command {
+	EZO_EC_CAL_CLEAR,
+	EZO_EC_CAL_DRY,
+	EZO_EC_CAL_ONE,
+	EZO_EC_CAL_LOW,
+	EZO_EC_CAL_HIGH,
+	EZO_EC_CAL_QUERY
 };
 
-enum ec_cal_status {
-	EC_CAL_UNKNOWN,
-	EC_CAL_NOT_CALIBRATED,
-	EC_CAL_SINGLE,
-	EC_CAL_DOUBLE
-};
+
 
 class EZO_EC: public EZO {
 	public:
 		EZO_EC() {
 			_k = -1.0; // Unknown
-			_ec_output = TRI_UNKNOWN;
+			_ezo_ec_output = TRI_UNKNOWN;
 			_tds_output = TRI_UNKNOWN;
 			_s_output = TRI_UNKNOWN;
 			_sg_output = TRI_UNKNOWN;
@@ -237,18 +254,16 @@ class EZO_EC: public EZO {
 			_sal = 0.0;
 			_sg = 0.0;
 		}
-		void			initialize();
-		ezo_response	calibrate(ec_calibration_command command);
-		ezo_response	calibrate(ec_calibration_command command,uint32_t standard);
-		ezo_response	queryCalibration();
-		ec_cal_status	getCalStatus(){return _calibration_status;}
+		void			initialize();		
+		ezo_response	calibrate(ezo_ec_calibration_command command) { return calibrate(command,0);}
+		ezo_response	calibrate(ezo_ec_calibration_command command,uint32_t ec_standard);
 		ezo_response	setK(float k);
 		ezo_response	queryK();
 		float			getK() {return _k; }
-		ezo_response	enableOutput(ec_output output);
-		ezo_response	disableOutput(ec_output output);
+		ezo_response	enableOutput(ezo_ec_output output);
+		ezo_response	disableOutput(ezo_ec_output output);
 		ezo_response	queryOutput();
-		tristate		getOutput(ec_output output);
+		tristate		getOutput(ezo_ec_output output);
 		void			printOutputs();
 		ezo_response	querySingleReading();
 		float			getEC()  { return _ec;}
@@ -262,11 +277,10 @@ class EZO_EC: public EZO {
 		char			sg[10];
 	protected:
 	private:
-		ezo_response	_changeOutput(ec_output output,int8_t enable_output);
+		ezo_response	_changeOutput(ezo_ec_output output,int8_t enable_output);
 		
 		float			_k;
-		ec_cal_status	_calibration_status;
-		tristate		_ec_output;
+		tristate		_ezo_ec_output;
 		tristate		_tds_output;
 		tristate		_s_output;
 		tristate		_sg_output;
@@ -278,10 +292,11 @@ class EZO_EC: public EZO {
 
 /*-------------------- ORP --------------------*/
 
-enum orp_cal_status {
-	ORP_CAL_UNKNOWN,
-	ORP_CAL_NOT_CALIBRATED = false,
-	ORP_CAL_CALIBRATED = true
+enum ezo_orp_calibration_command {
+	EZO_ORP_CAL_CLEAR,
+	EZO_ORP_CAL_ATM,
+	EZO_ORP_CAL_ZERO,
+	EZO_ORP_CAL_QUERY
 };
 
 class EZO_ORP: public EZO {
@@ -290,20 +305,24 @@ class EZO_ORP: public EZO {
 			_orp = 0.0;
 		}
 		void			initialize();
-		ezo_response	clearCalibration();
-		ezo_response	calibrate(uint32_t known_orp);
-		ezo_response	calibrate(float known_orp);
-		ezo_response	queryCalibration();
-		orp_cal_status	getCalStatus(){return _calibration_status;}
+		ezo_response	calibrate(ezo_orp_calibration_command command) { return calibrate(command,(uint32_t)0);}
+		ezo_response	calibrate(ezo_orp_calibration_command command,float orp_standard);
+		ezo_response	calibrate(ezo_orp_calibration_command command,uint32_t orp_standard);
 		ezo_response	querySingleReading();
 		
 		char			orp[10];
 	private:
 		float			_orp;
-		orp_cal_status	_calibration_status;
 };
 
 /*-------------------- pH --------------------*/
+
+enum ezo_ph_calibration_command {
+	EZO_PH_CAL_CLEAR,
+	EZO_PH_CAL_ATM,
+	EZO_PH_CAL_ZERO,
+	EZO_PH_CAL_QUERY
+};
 
 class EZO_PH: public EZO {
 	public:
@@ -312,6 +331,8 @@ class EZO_PH: public EZO {
 		}
 		void			initialize();
 		ezo_response	querySingleReading();
+		ezo_response	calibrate(ezo_ph_calibration_command command) { return calibrate(command,0);}
+		ezo_response	calibrate(ezo_ph_calibration_command command,uint32_t ph_standard);
 		
 		char	ph[10];
 	private:
