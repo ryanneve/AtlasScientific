@@ -17,6 +17,7 @@
 
 ## To be done: ##
 
+* Test on non-Mega2560 arduino
 * Examples
 * Not tested on ORP sensor (don't have one)
 * keywords.txt for Arduino IDE
