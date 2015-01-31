@@ -59,13 +59,11 @@ class RGB: public Atlas {
 		RGB() {
 			_rgb_mode = RGB_UNKNOWN;
 			_saturated = false;
-			_online = true;
 		}
 		void			initialize();
 		tristate		querySingleReading();
 		void			enableContinuousReadings();
 		void			disableContinuousReadings();
-		tristate		queryContinuousReadings();
 		tristate		queryInfo();
 		tristate		setMode(rgb_mode);
 		rgb_mode		getMode(){return _rgb_mode;}

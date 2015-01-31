@@ -41,6 +41,21 @@ uint16_t Atlas::flushSerial(){
 
 
 
+
+void Atlas::setConnected() {
+	if ( ! _connected ) {
+		_connected = true;
+		if ( debug() ) Serial.println("Instrument Connected");
+	}
+}
+
+void Atlas::setOnline() {
+	_online = true;
+}
+void Atlas::setOffline() {
+	_online = false;
+}
+
 int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis){
 	if ( offline() ) return -1;
 	uint32_t _request_start = millis();
@@ -59,7 +74,7 @@ void Atlas::_getResult(uint16_t result_delay){
 	if ( online() ) _result_len = Serial_AS->readBytesUntil('\r',_result,ATLAS_SERIAL_RESULT_LEN);
 	else _result_len = 0;
 	_result[_result_len] = 0; // null terminate
-	if ( _debug ) { Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);}
+	if ( debug() ) { Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);}
 }
 
 

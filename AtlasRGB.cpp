@@ -28,13 +28,13 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
 void RGB::initialize(){
 	disableContinuousReadings();
-	queryInfo();
+	if ( queryInfo() == TRI_ON ) setConnected();
 }
 
 tristate RGB::querySingleReading(){
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,true);
-	if ( _debug ) {
+	if ( debug() ) {
 		Serial.print("qSR got _result: "); Serial.println(_result);
 		Serial.print("_mode is: ");
 		if ( _rgb_mode == RGB_UNKNOWN) Serial.println("?");
@@ -136,7 +136,7 @@ tristate RGB::setMode(rgb_mode mode) {
 	tristate result = TRI_UNKNOWN;
 	_rgb_mode = mode;
 	sprintf(_command,"M%d\r",mode);
-	if ( _debug ) { Serial.print("Setting RGB Mode with command ");	Serial.println(_command);}
+	if ( debug() ) { Serial.print("Setting RGB Mode with command ");	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "[RGB|lx|RGB+lx]\r"
 	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT)		result = TRI_ON;
@@ -148,22 +148,25 @@ tristate RGB::setMode(rgb_mode mode) {
 tristate RGB::queryInfo(){
 	tristate result = TRI_UNKNOWN;
 	strncpy(_command,"I\r",ATLAS_COMMAND_LENGTH);
-	if ( _debug )  {Serial.print("Querying RGB info with command ");	Serial.println(_command);}
+	if ( debug() )  {Serial.print("Querying RGB info with command ");	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "C,V<version>,<date>\r". C is for Color.
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (pch[0] == 'C'){
-		result = TRI_ON;
 		pch = strtok(NULL, ",\r");
 		if ( pch[0] == 'V') {
 			// Parse version
+			result = TRI_ON;
 			strncpy(_firmware_version,pch,sizeof(_firmware_version));
 		}
 		pch = strtok(NULL, ",\r");
 		strncpy(_firmware_date,pch,sizeof(_firmware_version));
 	}
-	else result = TRI_OFF;
+	else {
+		result = TRI_OFF;
+		if ( debug() ) Serial.println("Unable to retrieve RGB Info.");
+	}
 	return result;
 }
 

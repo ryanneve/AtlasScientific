@@ -40,18 +40,25 @@ enum tristate {
 
 class Atlas {
 	public:
+		Atlas() {
+			_connected = false;
+			_debug= false;
+			
+		}
 		void			begin();
 		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		uint32_t		getBaudRate() {return _baud_rate;}
 		bool			online() { return _online;}
 		bool			offline() { return ! _online;}
-		void			setOnline() {_online = true;}
-		void			setOffline() {_online = false;}
+		void			setOnline();
+		void			setOffline();
+		void			setConnected();
+		bool			connected() { return _connected;}
 		char			read(){ return Serial_AS->read();} // Used for console mode
 		void			write(char write_char) { Serial_AS->write(write_char); }
 		void			debugOn(){ _debug = true;}
 		void			debugOff(){_debug = false;}
-		bool			getDebug(){return _debug;}
+		bool			debug(){return _debug;}
 	protected:
 		HardwareSerial*	Serial_AS;
 		void			_getResult(uint16_t result_delay); // reads line into _result[]
@@ -60,11 +67,12 @@ class Atlas {
 		uint8_t			_strCmp(const char *str1, const char *str2);
 		
 		uint32_t		_baud_rate;
-		bool			_online;
 		char			_result[ATLAS_SERIAL_RESULT_LEN];
 		uint8_t			_result_len;
 		char			_command[ATLAS_COMMAND_LENGTH];
-		bool			_debug;
 	private:
+		bool			_debug;
+		bool			_online; // Are we connected? Usually for use with multiplexer.
+		bool			_connected; // Set to true when communications established
 };
 #endif
