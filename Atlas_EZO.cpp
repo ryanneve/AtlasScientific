@@ -244,7 +244,7 @@ ezo_response EZO::queryStatus(){
 		}
 		// parse voltage
 		_voltage = atof(_result + 10);
-		if ( _debug ) { Serial.print("Voltage is:"); Serial.println(_voltage);}
+		if ( debug() ) { Serial.print("Voltage is:"); Serial.println(_voltage);}
 	}
 	return response;
 }
@@ -271,13 +271,28 @@ ezo_response EZO::queryTempComp(){
 	if ( _result[0] == '?' && _result[1] == 'T' ) {
 		_temp_comp = atof(_result + 3);
 	}
-	if ( _debug ) {Serial.print("Temperature Compensation set to:"); Serial.println(_temp_comp);}
+	if ( debug() ) {Serial.print("Temperature Compensation set to:"); Serial.println(_temp_comp);}
 	return response;
 }
  
 /*              COMMON PRIVATE METHODS                      */
 
-
+void EZO::_initialize() {
+	char buf[40];
+	// Get setup values
+	delay(2000);
+	flushSerial();
+	Serial.println("Serial flushed, ");
+	enableResponse();
+	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
+	Serial.println("Continuous readings disabled.");
+	queryResponse();
+	if ( queryContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
+	sprintf(buf,"Continuous result: %s.",getResult());
+	Serial.println(buf);
+	if ( queryStatus() == EZO_RESPONSE_OK ) setConnected();
+	if ( queryInfo() == EZO_RESPONSE_OK ) setConnected();
+}
 
 
 ezo_response EZO::_sendCommand(char * command, bool has_result, bool has_response){
@@ -289,11 +304,11 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 	char byte_to_send = command[0];
 	if ( _i2c_address == 0 ) {
 		//uint8_t command_len = sizeof(&command);
-		if ( _debug ) Serial.print("Sending command:");
+		if ( debug() ) Serial.print("Sending command:");
 		uint8_t i = 0;
 		while (byte_to_send != 0 && i < ATLAS_COMMAND_LENGTH) {
 			Serial_AS->write((uint8_t)byte_to_send);
-			if ( _debug ) {
+			if ( debug() ) {
 				if ( byte_to_send == '\r' ) Serial.println("<CR>");
 				else Serial.write((char)byte_to_send);
 			}
@@ -302,7 +317,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 		}
 		if ( has_result ) {
 			int16_t byte_found = _delayUntilSerialData(10000);
-			if ( byte_found == -1 && _debug ) Serial.println("No data found while waiting for result");
+			if ( byte_found == -1 && debug() ) Serial.println("No data found while waiting for result");
 			_getResult(result_delay);
 		}
 		if ( has_response ) {
@@ -327,28 +342,25 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 }
 
 ezo_response EZO::_getResponse(){ // Serial only
-	if ( offline() ) return EZO_RESPONSE_OL;
-	// If _resonse_mode is ON, check for command response.
-	// Response should be a two letter code preceded by '*'
-	char _code[] = "UK";
-	if ( Serial_AS->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
-	_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
-	if ( _debug ) {Serial.print("Got response:"); Serial.println(_response);}
-	// format: "*<ezo_response>\r"
-	if ( _response[0] == '*' ) {
-		_code[0] = _response[1];
-		_code[1] = _response[2];
+	if ( offline() ) _last_response = EZO_RESPONSE_OL;
+	else {
+		// If _resonse_mode is ON, check for command response.
+		// Response should be a two letter code preceded by '*'
+		if ( Serial_AS->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
+		_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
+		if ( debug() ) {Serial.print("Got response:"); Serial.print(_response);}
+		// format: "*<ezo_response>\r"
+		if (_response_mode == TRI_OFF)			_last_response = EZO_RESPONSE_NA;
+		else if ( !memcmp(_response,"*OK",3))	_last_response = EZO_RESPONSE_OK;
+		else if ( !memcmp(_response,"*ER",3))	_last_response = EZO_RESPONSE_ER;
+		else if ( !memcmp(_response,"*OV",3))	_last_response = EZO_RESPONSE_OV;
+		else if ( !memcmp(_response,"*UV",3))	_last_response = EZO_RESPONSE_UV;
+		else if ( !memcmp(_response,"*RS",3))	_last_response = EZO_RESPONSE_RS;
+		else if ( !memcmp(_response,"*RE",3))	_last_response = EZO_RESPONSE_RE;
+		else if ( !memcmp(_response,"*SL",3))	_last_response = EZO_RESPONSE_SL;
+		else if ( !memcmp(_response,"*WA",3))	_last_response = EZO_RESPONSE_WA;
+		else									_last_response = EZO_RESPONSE_UK;
 	}
-	if (_response_mode != TRI_ON) _last_response = EZO_RESPONSE_NA;
-	else if ( !_strCmp(_code,"OK"))        _last_response = EZO_RESPONSE_OK;
-	else if ( !_strCmp(_code,"ER"))        _last_response = EZO_RESPONSE_ER;
-	else if ( !_strCmp(_code,"OV"))        _last_response = EZO_RESPONSE_OV;
-	else if ( !_strCmp(_code,"UV"))        _last_response = EZO_RESPONSE_UV;
-	else if ( !_strCmp(_code,"RS"))        _last_response = EZO_RESPONSE_RS;
-	else if ( !_strCmp(_code,"RE"))        _last_response = EZO_RESPONSE_RE;
-	else if ( !_strCmp(_code,"SL"))        _last_response = EZO_RESPONSE_SL;
-	else if ( !_strCmp(_code,"WA"))        _last_response = EZO_RESPONSE_WA;
-	else                                   _last_response = EZO_RESPONSE_UK;
 	return _last_response;
 }
 
@@ -377,20 +389,7 @@ void EZO::_geti2cResult(){
 /*              DO PUBLIC METHODS                      */
 
 void EZO_DO::initialize() {
-	char buf[40];
-	// Get setup values
-	_debug = false;
-	delay(2000);
-	flushSerial();
-	Serial.println("Serial flushed, ");
-	disableContinuousReadings();
-	Serial.println("Continuous readings disabled.");
-	queryResponse();
-	queryContinuousReadings();
-	sprintf(buf,"Continuous result: %s.",getResult());
-	Serial.println(buf);
-	queryStatus();
-	queryInfo();
+	_initialize();
 	queryOutput();
 	printOutputs();
 	queryTempComp();
@@ -398,10 +397,9 @@ void EZO_DO::initialize() {
 	queryPresComp();
 	enableOutput(DO_OUT_PERCENT_SAT);
 	enableOutput(DO_OUT_DO_MGL);
-	Serial.println("Initialization Done");
+	Serial.println("DO Initialization Done");
 	
 }
-
 
 ezo_response	setCalibrationAtm();
 ezo_response	setCalibrationAtm();
@@ -467,14 +465,14 @@ ezo_response EZO_DO::querySingleReading() {
 			else width = 5;
 			precision = 1;
 			dtostrf(_sat,width,precision,sat);
-			if ( _debug ) { Serial.print("Saturation is "); Serial.println(sat);}
+			if ( debug() ) { Serial.print("Saturation is "); Serial.println(sat);}
 		}
 		else if ( _dox_output && ! dox_parsed){
 			_dox = atof(pch); // convert string to float
 			dox_parsed = true;
 			width = 8;	precision = 2;
 			dtostrf(_dox,width,precision,dox);
-			if ( _debug )  {Serial.print("Dissolved Oxygen is "); Serial.println(dox);}
+			if ( debug() )  {Serial.print("Dissolved Oxygen is "); Serial.println(dox);}
 		}
 		pch = strtok(NULL, ",\r");
 	}
@@ -497,7 +495,7 @@ ezo_response EZO_DO::querySalComp(){
 	strncpy(_command,"S,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command, true,true);
 	// _result should be in the format "?S,<sal_us>,<uS|ppt>\r" // wrong in documentation
-	if ( _debug )  Serial.print("Salinity Compensation set to:");
+	if ( debug() )  Serial.print("Salinity Compensation set to:");
 	if ( _result[0] == '?' && _result[1] == 'S' && _result[2] == ',' ) {
 		char * pch;
 		char temp_sal_comp[10];
@@ -507,12 +505,12 @@ ezo_response EZO_DO::querySalComp(){
 		if ( !_strCmp(pch,"uS")){
 			_sal_us_comp = atoi(temp_sal_comp);
 			_sal_ppt_comp = 0;
-			if ( _debug ) { Serial.print(_sal_us_comp);	Serial.println(" uS");}
+			if ( debug() ) { Serial.print(_sal_us_comp);	Serial.println(" uS");}
 		}
 		else if ( !_strCmp(pch,"ppt")) {
 			_sal_us_comp = 0;
 			_sal_ppt_comp = atof(temp_sal_comp);
-			if ( _debug ) {Serial.print(_sal_ppt_comp);	Serial.println(" ppt");}
+			if ( debug() ) {Serial.print(_sal_ppt_comp);	Serial.println(" ppt");}
 		}
 	} 
 	return response;
@@ -532,7 +530,7 @@ ezo_response EZO_DO::queryPresComp(){
 	if ( _result[0] == '?' && _result[1] == 'P' ) {
 		_temp_comp = atof(_result + 3);
 	}
-	if ( _debug ) { Serial.print("Pressure Compensation set to:"); Serial.println(_temp_comp);}
+	if ( debug() ) { Serial.print("Pressure Compensation set to:"); Serial.println(_temp_comp);}
 	return response;
 }
 
@@ -555,21 +553,8 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 
 /*              EC PUBLIC METHODS                      */
 
- void EZO_EC::initialize() {
-	char buf[40];
-	// Get setup values
-	_debug = false;
-	delay(2000);
-	flushSerial();
-	Serial.println("Serial flushed, ");
-	disableContinuousReadings();
-	Serial.println("Continuous readings disabled.");
-	queryResponse();
-	queryContinuousReadings();
-	sprintf(buf,"Continuous result: %s.",getResult());
-	Serial.println(buf);
-	queryStatus();
-	queryInfo();
+void EZO_EC::initialize() {
+	_initialize();
 	queryCalibration();
 	queryK();
 	queryOutput();
@@ -579,9 +564,10 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 	enableOutput(EZO_EC_OUT_TDS);
 	enableOutput(EZO_EC_OUT_S);
 	enableOutput(EZO_EC_OUT_SG);
-	Serial.println("Initialization Done");
- }
- 
+	Serial.println("EC Initialization Done");
+}
+
+
 ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_standard) {
 	// NOT YET TESTED
 	ezo_response response = EZO_RESPONSE_UK;
@@ -613,7 +599,7 @@ ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_st
 	 if ( _result[0] == '?' && _result[1] == 'K') {
 		 // parse k
 		 _k = atof(_result + 3);
-		 if ( _debug ) { Serial.print("EC K value is:"); Serial.println(_k);}
+		 if ( debug() ) { Serial.print("EC K value is:"); Serial.println(_k);}
 	 }
 	 return response;
 }
@@ -742,20 +728,8 @@ ezo_response EZO_EC::_changeOutput(ezo_ec_output output,int8_t enable_output) {
 }
 /*              ORP PUBLIC METHODS                      */
  void EZO_ORP::initialize() {
-	 char buf[40];
-	 // Get setup values
-	 _debug = false;
-	 delay(2000);
-	 flushSerial();
-	 Serial.println("Serial flushed, ");
-	 disableContinuousReadings();
-	 Serial.println("Continuous readings disabled.");
-	 queryResponse();
-	 queryContinuousReadings();
-	 sprintf(buf,"Continuous result: %s.",getResult()); Serial.println(buf);
-	 queryStatus();
-	 queryInfo();
-	 Serial.println("Initialization Done");
+	 _initialize();
+	 Serial.println("ORP Initialization Done");
 	 
 }
 
@@ -781,33 +755,18 @@ ezo_response EZO_ORP::querySingleReading() {
 
 /*              ORP PRIVATE  METHODS                      */
 
-/*              pH PUBLIC METHODS                      */
- void EZO_PH::initialize() {
-	 char buf[40];
-	 // Get setup values
-	 _debug = false;
-	 delay(2000);
-	 flushSerial();
-	 Serial.println("Serial flushed, ");
-	 disableContinuousReadings();
-	 Serial.println("Continuous readings disabled.");
-	 queryResponse();
-	 queryContinuousReadings();
-	 sprintf(buf,"Continuous result: %s.",getResult());
-	 Serial.println(buf);
-	 queryStatus();
-	 queryInfo();
-	 Serial.println("Initialization Done");
-	 
- }
- 
- 
- ezo_response EZO_PH::querySingleReading() {
+/*              PH PUBLIC METHODS                      */
+void EZO_PH::initialize() {
+	 _initialize();
+	 Serial.println("PH Initialization Done");
+}
+
+ezo_response EZO_PH::querySingleReading() {
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	strncpy(ph,_result,10);
 	_ph = atof(ph);
 	return response;
- }
- 
- /*              pH PRIVATE  METHODS                      */
+}
+
+/*              pH PRIVATE  METHODS                      */

@@ -98,7 +98,6 @@ class EZO: public Atlas {
 			_voltage = 0.0;
 			_temp_comp = 0.0;
 			_led = TRI_UNKNOWN;
-			_online = true;
 			_circuit_type = EZO_UNKNOWN_CIRCUIT;
 			_calibration_status = EZO_CAL_UNKNOWN;
 			strncpy(_firmware,"0.0",6);
@@ -140,6 +139,7 @@ class EZO: public Atlas {
 		uint8_t			_command_len;
 		float			_temp_comp;
 		ezo_cal_status	_calibration_status;
+		void			_initialize();
 	private:
 		bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
