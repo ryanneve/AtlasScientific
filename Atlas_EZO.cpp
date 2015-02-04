@@ -390,11 +390,12 @@ void EZO::_geti2cResult(){
 
 void EZO_DO::initialize() {
 	_initialize();
-	queryOutput();
+	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
+	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
 	printOutputs();
-	queryTempComp();
-	querySalComp();
-	queryPresComp();
+	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
+	if ( querySalComp()		== EZO_RESPONSE_OK ) setConnected();
+	if ( queryPresComp()	== EZO_RESPONSE_OK ) setConnected();
 	enableOutput(DO_OUT_PERCENT_SAT);
 	enableOutput(DO_OUT_DO_MGL);
 	Serial.println("DO Initialization Done");
@@ -555,11 +556,11 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 
 void EZO_EC::initialize() {
 	_initialize();
-	queryCalibration();
-	queryK();
-	queryOutput();
+	if ( queryCalibration()	== EZO_RESPONSE_OK ) setConnected();
+	if ( queryK()			== EZO_RESPONSE_OK ) setConnected();
+	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
 	printOutputs();
-	queryTempComp();
+	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
 	enableOutput(EZO_EC_OUT_EC);
 	enableOutput(EZO_EC_OUT_TDS);
 	enableOutput(EZO_EC_OUT_S);

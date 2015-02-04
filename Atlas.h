@@ -41,18 +41,18 @@ enum tristate {
 class Atlas {
 	public:
 		Atlas() {
-			_connected = false;
-			_debug= false;
-			
+			_connected = false; // No communicatione seen
+			_online = true; // Only used if there is a multiplexer
+			_debug = false;
 		}
 		void			begin();
 		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		uint32_t		getBaudRate() {return _baud_rate;}
-		bool			online() { return _online;}
-		bool			offline() { return ! _online;}
+		bool			online() { return _online;} 
+		bool			offline() { return ! _online;} // Multiplexer switched to different instrument.
 		void			setOnline();
 		void			setOffline();
-		void			setConnected();
+		void			setConnected(); // Once connected, assume we stay connected.
 		bool			connected() { return _connected;}
 		char			read(){ return Serial_AS->read();} // Used for console mode
 		void			write(char write_char) { Serial_AS->write(write_char); }
