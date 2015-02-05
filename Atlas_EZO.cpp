@@ -457,22 +457,24 @@ ezo_response EZO_DO::querySingleReading() {
 	bool sat_parsed = false;
 	bool dox_parsed = false;
 	char * pch;
-	pch = strtok(_result+ 3,",\r");
+	pch = strtok(_result,",\r");
 	while ( pch != NULL) {
 		if ( _sat_output && !sat_parsed) {
+			if ( debug() ) { Serial.print("Raw Sat.is value "); Serial.println(pch);}
 			_sat = atof(pch);// convert string to float
 			sat_parsed = true;
 			if ( _sat < 100.0 ) width = 4;
 			else width = 5;
 			precision = 1;
-			dtostrf(_sat,width,precision,sat);
+			dtostrf(_sat,width,precision,sat); // saturation in %
 			if ( debug() ) { Serial.print("Saturation is "); Serial.println(sat);}
 		}
 		else if ( _dox_output && ! dox_parsed){
+			if ( debug() )  {Serial.print("Raw DO value: "); Serial.println(pch);}
 			_dox = atof(pch); // convert string to float
 			dox_parsed = true;
 			width = 8;	precision = 2;
-			dtostrf(_dox,width,precision,dox);
+			dtostrf(_dox,width,precision,dox); // Dissolved oxygen in mg/l
 			if ( debug() )  {Serial.print("Dissolved Oxygen is "); Serial.println(dox);}
 		}
 		pch = strtok(NULL, ",\r");
