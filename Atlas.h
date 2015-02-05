@@ -47,24 +47,24 @@ class Atlas {
 		}
 		void			begin();
 		void			begin(HardwareSerial *serial,uint32_t baud_rate);
-		uint32_t		getBaudRate() {return _baud_rate;}
-		bool			online() { return _online;} 
-		bool			offline() { return ! _online;} // Multiplexer switched to different instrument.
+		uint32_t		getBaudRate() const {return _baud_rate;}
+		bool			online() const { return _online;} 
+		bool			offline() const { return ! _online;} // Multiplexer switched to different instrument.
 		void			setOnline();
 		void			setOffline();
 		void			setConnected(); // Once connected, assume we stay connected.
-		bool			connected() { return _connected;}
-		char			read(){ return Serial_AS->read();} // Used for console mode
+		bool			connected() const { return _connected;}
+		char			read() { return Serial_AS->read();} // Used for console mode
 		void			write(char write_char) { Serial_AS->write(write_char); }
 		void			debugOn(){ _debug = true;}
 		void			debugOff(){_debug = false;}
-		bool			debug(){return _debug;}
+		bool			debug() const {return _debug;}
 	protected:
 		HardwareSerial*	Serial_AS;
 		void			_getResult(uint16_t result_delay); // reads line into _result[]
 		uint16_t		flushSerial();
-		int16_t			_delayUntilSerialData(uint32_t delay_millis);
-		uint8_t			_strCmp(const char *str1, const char *str2);
+		int16_t			_delayUntilSerialData(uint32_t delay_millis) const;
+		uint8_t			_strCmp(const char *str1, const char *str2) const ;
 		
 		uint32_t		_baud_rate;
 		char			_result[ATLAS_SERIAL_RESULT_LEN];

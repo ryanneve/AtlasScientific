@@ -259,17 +259,17 @@ class EZO_EC: public EZO {
 		ezo_response	calibrate(ezo_ec_calibration_command command,uint32_t ec_standard);
 		ezo_response	setK(float k);
 		ezo_response	queryK();
-		float			getK() {return _k; }
+		float			getK() const {return _k; }
 		ezo_response	enableOutput(ezo_ec_output output);
 		ezo_response	disableOutput(ezo_ec_output output);
 		ezo_response	queryOutput();
 		tristate		getOutput(ezo_ec_output output);
 		void			printOutputs();
 		ezo_response	querySingleReading();
-		float			getEC()  { return _ec;}
-		float			getTDS() { return _tds;}
-		float			getSAL() { return _sal;}
-		float			getSG()  { return _sg;}
+		float			getEC() const { return _ec;}
+		float			getTDS() const { return _tds;}
+		float			getSAL() const { return _sal;}
+		float			getSG()  const { return _sg;}
 			
 		char			ec[10];
 		char			tds[10];

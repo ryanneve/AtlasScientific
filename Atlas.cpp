@@ -56,7 +56,7 @@ void Atlas::setOffline() {
 	_online = false;
 }
 
-int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis){
+int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis) const{
 	if ( offline() ) return -1;
 	uint32_t _request_start = millis();
 	int16_t peek_byte;
@@ -78,7 +78,7 @@ void Atlas::_getResult(uint16_t result_delay){
 }
 
 
-uint8_t Atlas::_strCmp(const char *str1, const char *str2) {
+uint8_t Atlas::_strCmp(const char *str1, const char *str2) const {
 	while (*str1 && *str1 == *str2)
 	++str1, ++str2;
 	return *str1;

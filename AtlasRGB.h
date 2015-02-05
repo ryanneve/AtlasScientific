@@ -69,15 +69,15 @@ class RGB: public Atlas {
 		rgb_mode		getMode(){return _rgb_mode;}
 		char *			getFirmwareVer(){return _firmware_version;}
 		char *			getFirmwareDate(){return _firmware_date;}\
-		uint16_t		getRed(){return _red;}
-		uint16_t		getGreen(){return _green;}
-		uint16_t		getBlue(){return _blue;}
-		uint16_t		getLuxRed(){return _lx_red;}
-		uint16_t		getLuxGreen(){return _lx_green;}
-		uint16_t		getLuxBlue(){return _lx_blue;}
-		uint16_t		getLuxTotal(){return _lx_total;}
-		uint16_t		getLuxBeyond(){return _lx_beyond;}
-		bool			getSaturated(){return _saturated;}
+		uint16_t		getRed() const {return _red;}
+		uint16_t		getGreen() const {return _green;}
+		uint16_t		getBlue() const {return _blue;}
+		uint16_t		getLuxRed() const {return _lx_red;}
+		uint16_t		getLuxGreen() const {return _lx_green;}
+		uint16_t		getLuxBlue() const {return _lx_blue;}
+		uint16_t		getLuxTotal() const {return _lx_total;}
+		uint16_t		getLuxBeyond() const {return _lx_beyond;}
+		bool			getSaturated() const {return _saturated;}
 		char			red[RGB_DATA_LEN];
 		char			green[RGB_DATA_LEN];
 		char			blue[RGB_DATA_LEN];
