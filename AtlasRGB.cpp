@@ -18,7 +18,8 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 	Based on Atlas Scientific datasheets:
 		RGB	v1.6
 ============================================================================*/
-#include <arduino.h>
+//#define ATLAS_RGB_DEBUG
+
 #include <HardwareSerial.h>
 #include <AtlasRGB.h>
 
@@ -34,6 +35,7 @@ void RGB::initialize(){
 tristate RGB::querySingleReading(){
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,true);
+#ifdef ATLAS_RGB_DEBUG
 	if ( debug() ) {
 		Serial.print(F("qSR got _result: ")); Serial.println(_result);
 		Serial.print(F("_mode is: "));
@@ -42,6 +44,7 @@ tristate RGB::querySingleReading(){
 		if ( _rgb_mode == RGB_LUX) Serial.println("lx");
 		if ( _rgb_mode == RGB_ALL) Serial.println("ALL");
 	}
+#endif
 	// now parse _result
 	// response will depend on _mode.	
 	bool _red_parsed = false;
@@ -136,7 +139,9 @@ tristate RGB::setMode(rgb_mode mode) {
 	tristate result = TRI_UNKNOWN;
 	_rgb_mode = mode;
 	sprintf(_command,"M%d\r",mode);
+#ifdef ATLAS_RGB_DEBUG
 	if ( debug() ) { Serial.print(F("Setting RGB Mode with command "));	Serial.println(_command);}
+#endif
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "[RGB|lx|RGB+lx]\r"
 	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT)		result = TRI_ON;
@@ -148,7 +153,9 @@ tristate RGB::setMode(rgb_mode mode) {
 tristate RGB::queryInfo(){
 	tristate result = TRI_UNKNOWN;
 	strncpy(_command,"I\r",ATLAS_COMMAND_LENGTH);
+#ifdef ATLAS_RGB_DEBUG
 	if ( debug() )  {Serial.print(F("Querying RGB info with command "));	Serial.println(_command);}
+#endif
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "C,V<version>,<date>\r". C is for Color.
 	char * pch;
@@ -165,21 +172,23 @@ tristate RGB::queryInfo(){
 	}
 	else {
 		result = TRI_OFF;
+#ifdef ATLAS_RGB_DEBUG
 		if ( debug() ) Serial.println(F("Unable to retrieve RGB Info."));
+#endif
 	}
 	return result;
 }
 
 /*              PRIVATE METHODS                      */
 
-void RGB::_sendCommand(char * command, bool has_result){
-	_sendCommand(command,has_result,DEFAULT_COMMAND_DELAY);
-}
+void RGB::_sendCommand(char * command, bool has_result){_sendCommand(command,has_result,DEFAULT_COMMAND_DELAY);}
 void RGB::_sendCommand(char * command, bool has_result,uint16_t result_delay){
 	if ( online() ) Serial_AS->print(command);
 	if ( has_result ) {
 		int16_t byte_found = _delayUntilSerialData(10000);
+#ifdef ATLAS_RGB_DEBUG
 		if ( byte_found == -1 ) Serial.println(F("No data found while waiting for result"));
+#endif
 		_getResult(result_delay);
 	}
 }
