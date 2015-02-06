@@ -45,7 +45,7 @@ uint16_t Atlas::flushSerial(){
 void Atlas::setConnected() {
 	if ( ! _connected ) {
 		_connected = true;
-		if ( debug() ) Serial.println("Instrument Connected");
+		if ( debug() ) Serial.println(F("Instrument Connected"));
 	}
 }
 

@@ -35,8 +35,8 @@ tristate RGB::querySingleReading(){
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,true);
 	if ( debug() ) {
-		Serial.print("qSR got _result: "); Serial.println(_result);
-		Serial.print("_mode is: ");
+		Serial.print(F("qSR got _result: ")); Serial.println(_result);
+		Serial.print(F("_mode is: "));
 		if ( _rgb_mode == RGB_UNKNOWN) Serial.println("?");
 		if ( _rgb_mode == RGB_DEFAULT) Serial.println("RGB");
 		if ( _rgb_mode == RGB_LUX) Serial.println("lx");
@@ -136,7 +136,7 @@ tristate RGB::setMode(rgb_mode mode) {
 	tristate result = TRI_UNKNOWN;
 	_rgb_mode = mode;
 	sprintf(_command,"M%d\r",mode);
-	if ( debug() ) { Serial.print("Setting RGB Mode with command ");	Serial.println(_command);}
+	if ( debug() ) { Serial.print(F("Setting RGB Mode with command "));	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "[RGB|lx|RGB+lx]\r"
 	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT)		result = TRI_ON;
@@ -148,7 +148,7 @@ tristate RGB::setMode(rgb_mode mode) {
 tristate RGB::queryInfo(){
 	tristate result = TRI_UNKNOWN;
 	strncpy(_command,"I\r",ATLAS_COMMAND_LENGTH);
-	if ( debug() )  {Serial.print("Querying RGB info with command ");	Serial.println(_command);}
+	if ( debug() )  {Serial.print(F("Querying RGB info with command "));	Serial.println(_command);}
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "C,V<version>,<date>\r". C is for Color.
 	char * pch;
@@ -165,7 +165,7 @@ tristate RGB::queryInfo(){
 	}
 	else {
 		result = TRI_OFF;
-		if ( debug() ) Serial.println("Unable to retrieve RGB Info.");
+		if ( debug() ) Serial.println(F("Unable to retrieve RGB Info."));
 	}
 	return result;
 }
@@ -179,7 +179,7 @@ void RGB::_sendCommand(char * command, bool has_result,uint16_t result_delay){
 	if ( online() ) Serial_AS->print(command);
 	if ( has_result ) {
 		int16_t byte_found = _delayUntilSerialData(10000);
-		if ( byte_found == -1 ) Serial.println("No data found while waiting for result");
+		if ( byte_found == -1 ) Serial.println(F("No data found while waiting for result"));
 		_getResult(result_delay);
 	}
 }

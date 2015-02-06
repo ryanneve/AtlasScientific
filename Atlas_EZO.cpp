@@ -271,7 +271,7 @@ ezo_response EZO::queryTempComp(){
 	if ( _result[0] == '?' && _result[1] == 'T' ) {
 		_temp_comp = atof(_result + 3);
 	}
-	if ( debug() ) {Serial.print("Temperature Compensation set to:"); Serial.println(_temp_comp);}
+	if ( debug() ) {Serial.print(F("Temperature Compensation set to:")); Serial.println(_temp_comp);}
 	return response;
 }
  
@@ -317,7 +317,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 		}
 		if ( has_result ) {
 			int16_t byte_found = _delayUntilSerialData(10000);
-			if ( byte_found == -1 && debug() ) Serial.println("No data found while waiting for result");
+			if ( byte_found == -1 && debug() ) Serial.println(F("No data found while waiting for result"));
 			_getResult(result_delay);
 		}
 		if ( has_response ) {
@@ -460,22 +460,22 @@ ezo_response EZO_DO::querySingleReading() {
 	pch = strtok(_result,",\r");
 	while ( pch != NULL) {
 		if ( _dox_output && ! dox_parsed){
-			if ( debug() )  {Serial.print("Raw DO mg/l value: "); Serial.println(pch);}
+			if ( debug() )  {Serial.print(F("Raw DO mg/l value: ")); Serial.println(pch);}
 			_dox = atof(pch); // convert string to float
 			dox_parsed = true;
 			width = 8;	precision = 2;
 			dtostrf(_dox,width,precision,dox); // Dissolved oxygen in mg/l
-			if ( debug() )  {Serial.print("Dissolved Oxygen is "); Serial.println(dox);}
+			if ( debug() )  {Serial.print(F("Dissolved Oxygen is "); Serial.println(dox);}
 		}
 		else if ( _sat_output && !sat_parsed) {
-			if ( debug() ) { Serial.print("Raw Sat.% value "); Serial.println(pch);}
+			if ( debug() ) { Serial.print(F("Raw Sat.% value ")); Serial.println(pch);}
 			_sat = atof(pch);// convert string to float
 			sat_parsed = true;
 			if ( _sat < 100.0 ) width = 4;
 			else width = 5;
 			precision = 1;
 			dtostrf(_sat,width,precision,sat); // saturation in %
-			if ( debug() ) { Serial.print("Saturation % is "); Serial.println(sat);}
+			if ( debug() ) { Serial.print(F("Saturation % is ")); Serial.println(sat);}
 		}
 		pch = strtok(NULL, ",\r");
 	}
@@ -498,7 +498,7 @@ ezo_response EZO_DO::querySalComp(){
 	strncpy(_command,"S,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command, true,true);
 	// _result should be in the format "?S,<sal_us>,<uS|ppt>\r" // wrong in documentation
-	if ( debug() )  Serial.print("Salinity Compensation set to:");
+	if ( debug() )  Serial.print(F("Salinity Compensation set to:"));
 	if ( _result[0] == '?' && _result[1] == 'S' && _result[2] == ',' ) {
 		char * pch;
 		char temp_sal_comp[10];
@@ -533,7 +533,7 @@ ezo_response EZO_DO::queryPresComp(){
 	if ( _result[0] == '?' && _result[1] == 'P' ) {
 		_temp_comp = atof(_result + 3);
 	}
-	if ( debug() ) { Serial.print("Pressure Compensation set to:"); Serial.println(_temp_comp);}
+	if ( debug() ) { Serial.print(F("Pressure Compensation set to:")); Serial.println(_temp_comp);}
 	return response;
 }
 
@@ -567,7 +567,7 @@ void EZO_EC::initialize() {
 	enableOutput(EZO_EC_OUT_TDS);
 	enableOutput(EZO_EC_OUT_S);
 	enableOutput(EZO_EC_OUT_SG);
-	Serial.println("EC Initialization Done");
+	Serial.println(F("EC Initialization Done"));
 }
 
 
@@ -602,7 +602,7 @@ ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_st
 	 if ( _result[0] == '?' && _result[1] == 'K') {
 		 // parse k
 		 _k = atof(_result + 3);
-		 if ( debug() ) { Serial.print("EC K value is:"); Serial.println(_k);}
+		 if ( debug() ) { Serial.print(F("EC K value is:")); Serial.println(_k);}
 	 }
 	 return response;
 }
@@ -732,7 +732,7 @@ ezo_response EZO_EC::_changeOutput(ezo_ec_output output,int8_t enable_output) {
 /*              ORP PUBLIC METHODS                      */
  void EZO_ORP::initialize() {
 	 _initialize();
-	 Serial.println("ORP Initialization Done");
+	 Serial.println(F("ORP Initialization Done"));
 	 
 }
 
@@ -761,7 +761,7 @@ ezo_response EZO_ORP::querySingleReading() {
 /*              PH PUBLIC METHODS                      */
 void EZO_PH::initialize() {
 	 _initialize();
-	 Serial.println("PH Initialization Done");
+	 Serial.println(F("PH Initialization Done"));
 }
 
 ezo_response EZO_PH::querySingleReading() {
