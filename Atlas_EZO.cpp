@@ -388,7 +388,7 @@ void EZO::_geti2cResult(){
 	// Parse.
 	// First byte is response code [255,254,2,1] should be put in _response[0]
 	_response_len = 1; // Always
-	switch (_response[0]) {
+	switch (_response[0] + 1) { // MAKE SURE THE +1 is CORRECT.
 		case 255:
 			_last_response = EZO_I2C_RESPONSE_ND; break;
 		case 254:

@@ -185,10 +185,11 @@ void RGB::_sendCommand(char * command, bool has_result){_sendCommand(command,has
 void RGB::_sendCommand(char * command, bool has_result,uint16_t result_delay){
 	if ( online() ) Serial_AS->print(command);
 	if ( has_result ) {
-		int16_t byte_found = _delayUntilSerialData(10000);
+		if ( _delayUntilSerialData(10000) == -1 ){
 #ifdef ATLAS_RGB_DEBUG
-		if ( byte_found == -1 ) Serial.println(F("No data found while waiting for result"));
+			Serial.println(F("No data found while waiting for result"));
 #endif
+		}
 		_getResult(result_delay);
 	}
 }
