@@ -33,9 +33,9 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #include <HardwareSerial.h>
 
 enum tristate {
-	TRI_UNKNOWN,
 	TRI_ON = true,
-	TRI_OFF = false
+	TRI_OFF = false,
+	TRI_UNKNOWN = 3
 };
 
 class Atlas {

@@ -63,6 +63,7 @@ enum ezo_response {
 	EZO_RESPONSE_RE,	// The circuit has completed boot up
 	EZO_RESPONSE_SL,	// The circuit has been put to sleep
 	EZO_RESPONSE_WA,	// The circuit has woken up from sleep
+	EZO_I2C_RESPONSE_NA,	// I2c not inresponse mode
 	EZO_I2C_RESPONSE_ND,	// No Data = 255
 	EZO_I2C_RESPONSE_PE,	// Pending = 254
 	EZO_I2C_RESPONSE_F,		// Failed = 2
@@ -122,7 +123,11 @@ class EZO: public Atlas {
 		ezo_response	enableResponse();
 		ezo_response	disableResponse();
 		tristate		queryResponse();
+#ifdef ATLAS_EZO_DEBUG
+		void			printResponse(char * buf, ezo_response response);
+#endif
 		ezo_response	setBaudRate(uint32_t baud_rate);
+		ezo_response	fixBaudRate(uint32_t alt_baud_rate);
 		ezo_response	sleep();
 		ezo_response	wake();
 		ezo_response	queryStatus();
@@ -140,6 +145,7 @@ class EZO: public Atlas {
 		float			_temp_comp;
 		ezo_cal_status	_calibration_status;
 		void			_initialize();
+		char			_response[EZO_RESPONSE_LENGTH]; // holds string response code "*xx\r" where xx is a two letter code.
 	private:
 		bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
@@ -149,7 +155,6 @@ class EZO: public Atlas {
 		char 			 _name[EZO_NAME_LENGTH];
 		char			_firmware[6];
 		tristate		_response_mode; // Do we expect responses from EZO circuit
-		char			_response[EZO_RESPONSE_LENGTH]; // holds string response code "*xx\r" where xx is a two letter code.
 		uint8_t			_response_len; 
 		ezo_response	_last_response;
 		ezo_circuit_type	_circuit_type;

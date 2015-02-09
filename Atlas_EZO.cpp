@@ -27,9 +27,32 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 //#define ATLAS_EZO_DEBUG
 
 /*              COMMON PUBLIC METHODS                      */
+#ifdef ATLAS_EZO_DEBUG
+void EZO::printResponse(char * buf, ezo_response response){
+	switch ( response ) {		
+		case EZO_RESPONSE_OL:		strncpy(buf,"OL",3); break; 	// Circuit offline
+		case EZO_RESPONSE_NA:		strncpy(buf,"NA",3); break; 	// Not in response mod
+		case EZO_RESPONSE_UK:		strncpy(buf,"UK",3); break; 	// Unknown
+		case EZO_RESPONSE_OK:		strncpy(buf,"OK",3); break; 	// Command accepted
+		case EZO_RESPONSE_ER:		strncpy(buf,"ER",3); break; 	// An unknown command
+		case EZO_RESPONSE_OV:		strncpy(buf,"OV",3); break; 	// The circuit is bein
+		case EZO_RESPONSE_UV:		strncpy(buf,"UV",3); break; 	// The circuit is bein
+		case EZO_RESPONSE_RS:		strncpy(buf,"RS",3); break; 	// The circuit has res
+		case EZO_RESPONSE_RE:		strncpy(buf,"RE",3); break; 	// The circuit has com
+		case EZO_RESPONSE_SL:		strncpy(buf,"SL",3); break; 	// The circuit has bee
+		case EZO_RESPONSE_WA:		strncpy(buf,"WA",3); break; 	// The circuit has wok
+		case EZO_I2C_RESPONSE_NA:	strncpy(buf,"INA",4); break; 	// No Data = 255
+		case EZO_I2C_RESPONSE_ND:	strncpy(buf,"IND",4); break; 	// No Data = 255
+		case EZO_I2C_RESPONSE_PE:	strncpy(buf,"IPE",4); break; 	// Pending = 254
+		case EZO_I2C_RESPONSE_F:	strncpy(buf,"IF",3); break; 		// Failed = 2
+		case EZO_I2C_RESPONSE_S:	strncpy(buf,"IS",3); break; 		// Success = 1
+		case EZO_I2C_RESPONSE_UK:	strncpy(buf,"IUK",4); break; 		// UnKnown
+	}
+}
+#endif
 
 ezo_response EZO::enableContinuousReadings(){
-	if ( _i2c_address != 0 ) return EZO_RESPONSE_NA; // i2c mode has no continuous mode
+	if ( _i2c_address != 0 ) return EZO_I2C_RESPONSE_NA; // i2c mode has no continuous mode
 	strncpy(_command,"C,1\r",ATLAS_COMMAND_LENGTH);
 	return _sendCommand(_command,false,true);
 }
@@ -185,16 +208,21 @@ tristate EZO::queryResponse() {
 		pch = strtok(_result,",\r");
 		if ( !_strCmp(pch,"?RESPONSE")) {
 			pch = strtok(NULL, ",\r");
-			if ( pch[0] == '0')			_response_mode = TRI_OFF;
+			if ( pch[0] == '0') 		_response_mode = TRI_OFF;
 			else if ( pch[0] == '1')	_response_mode = TRI_ON;
 			else						_response_mode = TRI_UNKNOWN;
 		}
+#ifdef ATLAS_EZO_DEBUG
+		Serial.print("Response mode from: "); Serial.print(pch);
+		if ( _response_mode == TRI_OFF ) Serial.println(" off");
+		else if ( _response_mode == TRI_ON ) Serial.println(" on");
+		else if ( _response_mode == TRI_UNKNOWN ) Serial.println(" unknown");
+#endif
 	}
 	return _response_mode;
 }
 
 ezo_response EZO::setBaudRate(uint32_t baud_rate) {
-	ezo_response response;
 	// Command is "SERIAL,<baud_rate>\r"
 	switch (baud_rate){ // CHeck if it's a valid value
 		case 300:
@@ -212,8 +240,36 @@ ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	}
 	// send command to circuit
 	_command_len = sprintf(_command,"SERIAL,%lu\r",_baud_rate);
-	response = _sendCommand(_command,false,true);
+	ezo_response response = _sendCommand(_command,false,true);
 	Serial_AS->begin(_baud_rate); // This might better be done elsewhere....
+	_delayUntilSerialData(500);	flushSerial(); // We might get a *RS and *RE after this which we want to ignore
+	return response;
+}
+
+
+ezo_response EZO::fixBaudRate(uint32_t desired_baud_rate){
+	// tries to change baud rate  to desired_baud_rate
+	uint32_t baud_rates[] = {1200,38400,9600,19200,57600,2400,300,115200}; // 8 choices in order of likelyhood.
+	uint8_t i = 0;
+	ezo_response response;
+	char buf[5];
+	for ( i = 0 ; i < 7 ; i++) {
+		//Serial.print("Trying baud rate:"); Serial.println(baud_rates[i]);
+		Serial_AS->begin(baud_rates[i]); // Sets local baud rate
+		Serial_AS->write('\r');
+		//_delayUntilSerialData(500);	flushSerial();
+		disableContinuousReadings(); 
+		_delayUntilSerialData(500);	flushSerial();
+		response = setBaudRate(desired_baud_rate);
+		if ( response == EZO_RESPONSE_OK ) break;
+	}
+	//if ( response == EZO_RESPONSE_OK) { Serial.print("Success at "); Serial.println(_baud_rate);}
+	//else Serial.println("Failed to fix baud rate");
+	//Serial_AS->begin(alt_baud_rate);
+	//Serial_AS->write('\r');
+	//flushSerial();
+	//return setBaudRate(_baud_rate);
+	delay(1000);	flushSerial();
 	return response;
 }
 
@@ -290,10 +346,12 @@ void EZO::_initialize() {
 	Serial.println("Serial flushed, ");
 #endif
 	enableResponse();
-	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
+	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) {
+		setConnected();
 #ifdef ATLAS_EZO_DEBUG
-	Serial.println("Continuous readings disabled.");
+		Serial.println("Continuous readings disabled.");
 #endif
+	}
 	queryResponse();
 	if ( queryContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
 #ifdef ATLAS_EZO_DEBUG
@@ -318,7 +376,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 #ifdef ATLAS_EZO_DEBUG
 		if ( debug() ) Serial.print("Sending command:");
 #endif
-		uint8_t i = 0;
+		int8_t i = 0;
 		while (byte_to_send != 0 && i < ATLAS_COMMAND_LENGTH) {
 			Serial_AS->write((uint8_t)byte_to_send);
 #ifdef ATLAS_EZO_DEBUG
@@ -331,10 +389,12 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 			byte_to_send = command[i];
 		}
 		if ( has_result ) {
+			if ( _delayUntilSerialData(10000) != -1 ) {
+				_getResult(result_delay);
+			}
 #ifdef ATLAS_EZO_DEBUG
-			if ( _delayUntilSerialData(10000) == -1 && debug() ) Serial.println(F("No data found while waiting for result"));
+			else if ( debug() ) Serial.println(F("No data found while waiting for result"));
 #endif
-			_getResult(result_delay);
 		}
 		if ( has_response ) {
 			delay(300);
@@ -350,7 +410,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 		if ( has_result ) {
 			_geti2cResult(); // This get Response and Reply(data);
 		}
-		if ( has_response ) _last_response = EZO_RESPONSE_NA; // i2c doesn't have response codes
+		if ( has_response ) _last_response = EZO_I2C_RESPONSE_NA; // i2c doesn't have response codes
 	}
 	// response comes after data. For Serial communications is is enabled, for i2c it is a separate request.
 	return _last_response;
@@ -364,9 +424,6 @@ ezo_response EZO::_getResponse(){ // Serial only
 		// Response should be a two letter code preceded by '*'
 		if ( Serial_AS->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
 		_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
-#ifdef ATLAS_EZO_DEBUG
-		if ( debug() ) {Serial.print("Got response:"); Serial.print(_response);}
-#endif
 		// format: "*<ezo_response>\r"
 		if (_response_mode == TRI_OFF)			_last_response = EZO_RESPONSE_NA;
 		else if ( !memcmp(_response,"*OK",3))	_last_response = EZO_RESPONSE_OK;
@@ -379,6 +436,15 @@ ezo_response EZO::_getResponse(){ // Serial only
 		else if ( !memcmp(_response,"*WA",3))	_last_response = EZO_RESPONSE_WA;
 		else									_last_response = EZO_RESPONSE_UK;
 	}
+#ifdef ATLAS_EZO_DEBUG
+	if ( debug() ) {
+		Serial.print("Got response:"); Serial.print(_response); Serial.print("= ");
+		char buf[5] ; printResponse(buf,_last_response);	Serial.print(buf);	
+		if ( _response_mode == TRI_OFF ) Serial.println(" OFF");
+		if ( _response_mode == TRI_ON ) Serial.println(" ON");
+		if ( _response_mode == TRI_UNKNOWN ) Serial.println(" UNKNOWN");
+	}
+#endif
 	return _last_response;
 }
 
