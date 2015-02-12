@@ -723,14 +723,14 @@ ezo_response EZO_EC::queryOutput() {
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
 	if (_result[0] == '?' && _result[1] == 'O' && _result[2] == ',') {
-		_ezo_ec_output  = TRI_OFF;
+		_ec_output  = TRI_OFF;
 		_tds_output = TRI_OFF;
 		_s_output   = TRI_OFF;
 		_sg_output  = TRI_OFF;
 		char * pch;
 		pch = strtok(_result+ 3,",\r");
 		while ( pch != NULL) {
-			if ( !_strCmp(pch,"EC"))  _ezo_ec_output  = TRI_ON;
+			if ( !_strCmp(pch,"EC"))  _ec_output  = TRI_ON;
 			if ( !_strCmp(pch,"TDS")) _tds_output = TRI_ON;
 			if ( !_strCmp(pch,"S"))   _s_output   = TRI_ON;
 			if ( !_strCmp(pch,"SG"))  _sg_output  = TRI_ON;
@@ -742,8 +742,8 @@ ezo_response EZO_EC::queryOutput() {
 void  EZO_EC::printOutputs(){
 	// No need to check _debug here
 	Serial.print("EC outputs:");
-	if ( _ezo_ec_output == TRI_ON ) Serial.print("EC ");
-	else if ( _ezo_ec_output == TRI_UNKNOWN )  Serial.print("?EC ");
+	if ( _ec_output == TRI_ON ) Serial.print("EC ");
+	else if ( _ec_output == TRI_UNKNOWN )  Serial.print("?EC ");
 	if ( _tds_output == TRI_ON ) Serial.print("TDS ");
 	else if ( _tds_output == TRI_UNKNOWN )  Serial.print("?TDS ");
 	if ( _s_output == TRI_ON )   Serial.print("S ");
@@ -754,7 +754,7 @@ void  EZO_EC::printOutputs(){
  }
 tristate EZO_EC::getOutput(ezo_ec_output output) {
 	switch (output) {
-		case EZO_EC_OUT_EC: return _ezo_ec_output;
+		case EZO_EC_OUT_EC: return _ec_output;
 		case EZO_EC_OUT_TDS: return _tds_output;
 		case EZO_EC_OUT_S: return _s_output;
 		case EZO_EC_OUT_SG: return _sg_output;
@@ -766,15 +766,17 @@ ezo_response EZO_EC::querySingleReading() {
 	uint8_t precision;
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
+	// Response starts "EC," and ends in "\r". There may be up to 4 parameters in the following order:
+	// EC,TDS,SAL,SG. The format of the output is determined by queryOutput() and saved in _xx_output.
 	bool ec_parsed = false;
 	bool tds_parsed = false;
 	bool sal_parsed = false;
 	bool sg_parsed = false;
 	char * pch;
-	pch = strtok(_result+ 3,",\r");
+	pch = strtok(_result + 3,",\r");
 	while ( pch != NULL) {
-		if ( _ezo_ec_output && !ec_parsed) {
-			_ec = atof(pch);
+		if ( _ec_output && !ec_parsed) {
+			_ec = atof(pch); // Convert parsed string to float attribute
 			ec_parsed = true;
 			if ( _ec <= 999.9 ) width = 5;
 			else if ( _ec >= 1000 && _ec <= 9999 ) width = 4;
@@ -783,7 +785,7 @@ ezo_response EZO_EC::querySingleReading() {
 			if ( _ec <= 99.99 ) precision = 2;
 			else if ( _ec <= 999.9 ) precision = 1;
 			else precision = 0; // 1000+
-			dtostrf(_ec,width,precision,ec);
+			dtostrf(_ec,width,precision,ec); // Save to ec char array for easier logging.
 		}
 		else if ( _tds_output && ! tds_parsed){
 			_tds = atof(pch);

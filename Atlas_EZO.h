@@ -250,7 +250,7 @@ class EZO_EC: public EZO {
 	public:
 		EZO_EC() {
 			_k = -1.0; // Unknown
-			_ezo_ec_output = TRI_UNKNOWN;
+			_ec_output = TRI_UNKNOWN;
 			_tds_output = TRI_UNKNOWN;
 			_s_output = TRI_UNKNOWN;
 			_sg_output = TRI_UNKNOWN;
@@ -285,7 +285,7 @@ class EZO_EC: public EZO {
 		ezo_response	_changeOutput(ezo_ec_output output,int8_t enable_output);
 		
 		float			_k;
-		tristate		_ezo_ec_output;
+		tristate		_ec_output;
 		tristate		_tds_output;
 		tristate		_s_output;
 		tristate		_sg_output;
@@ -314,7 +314,7 @@ class EZO_ORP: public EZO {
 		ezo_response	calibrate(ezo_orp_calibration_command command,float orp_standard);
 		ezo_response	calibrate(ezo_orp_calibration_command command,uint32_t orp_standard);
 		ezo_response	querySingleReading();
-		
+		float			getORP() const { return _orp;}		
 		char			orp[10];
 	private:
 		float			_orp;
@@ -338,7 +338,7 @@ class EZO_PH: public EZO {
 		ezo_response	querySingleReading();
 		ezo_response	calibrate(ezo_ph_calibration_command command) { return calibrate(command,0);}
 		ezo_response	calibrate(ezo_ph_calibration_command command,uint32_t ph_standard);
-		
+		float			getPH() const { return _ph;}
 		char	ph[10];
 	private:
 		float	_ph;
