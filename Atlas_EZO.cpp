@@ -475,13 +475,12 @@ void EZO::_geti2cResult(){
 void EZO_DO::initialize() {
 	_initialize();
 	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
-	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
-	printOutputs();
 	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
 	if ( querySalComp()		== EZO_RESPONSE_OK ) setConnected();
 	if ( queryPresComp()	== EZO_RESPONSE_OK ) setConnected();
-	enableOutput(DO_OUT_PERCENT_SAT);
-	enableOutput(DO_OUT_DO_MGL);
+	//enableOutput(DO_OUT_PERCENT_SAT);
+	//enableOutput(DO_OUT_DO_MGL);
+	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
 #ifdef ATLAS_EZO_DEBUG
 	Serial.println("DO Initialization Done");
 #endif
@@ -662,18 +661,16 @@ void EZO_EC::initialize() {
 	_initialize();
 	if ( queryCalibration()	== EZO_RESPONSE_OK ) setConnected();
 	if ( queryK()			== EZO_RESPONSE_OK ) setConnected();
-	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
-	printOutputs();
 	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
-	enableOutput(EZO_EC_OUT_EC);
-	enableOutput(EZO_EC_OUT_TDS);
-	enableOutput(EZO_EC_OUT_S);
-	enableOutput(EZO_EC_OUT_SG);
+	//enableOutput(EZO_EC_OUT_EC);
+	//enableOutput(EZO_EC_OUT_TDS);
+	//enableOutput(EZO_EC_OUT_S);
+	//enableOutput(EZO_EC_OUT_SG);
+	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
 #ifdef ATLAS_EZO_DEBUG
 	Serial.println(F("EC Initialization Done"));
 #endif
 }
-
 
 ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_standard) {
 	// NOT YET TESTED
@@ -692,8 +689,6 @@ ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_st
 	}
 	return response;
  }
-
-
  
  ezo_response EZO_EC::setK(float k) {
 	 _command_len = sprintf(_command,"K,%4.1f\r",(double)k);
