@@ -24,7 +24,6 @@
 * Temperature logger
 * Need to finish calibrate() methods for DO,EC,ORP, PH
 * Need to add I2C functionality for EZO instruments. Some hooks provided.
-* Auto-set baud rate?
 
 One possible example would be a terminal program allowing user to pick UART and baud rate, then issue commands using methods. (partially done)
 
