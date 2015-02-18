@@ -757,9 +757,11 @@ ezo_response EZO_EC::querySingleReading() {
 	bool tds_parsed = false;
 	bool sal_parsed = false;
 	bool sg_parsed = false;
+	//Serial.print("Parsing :"); Serial.println(_result);
 	char * pch;
-	pch = strtok(_result + 3,",\r");
+	pch = strtok(_result,",\r");
 	while ( pch != NULL) {
+		//Serial.print("  part:"); Serial.println(pch);
 		if ( _ec_output && !ec_parsed) {
 			_ec = atof(pch); // Convert parsed string to float attribute
 			ec_parsed = true;
@@ -771,6 +773,7 @@ ezo_response EZO_EC::querySingleReading() {
 			else if ( _ec <= 999.9 ) precision = 1;
 			else precision = 0; // 1000+
 			dtostrf(_ec,width,precision,ec); // Save to ec char array for easier logging.
+			//Serial.print("EC= "); Serial.print(_ec); Serial.print(" = "); Serial.println(ec);
 		}
 		else if ( _tds_output && ! tds_parsed){
 			_tds = atof(pch);
