@@ -29,7 +29,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
 void RGB::initialize(){
 	disableContinuousReadings();
-	if ( queryInfo() == TRI_ON ) setConnected();
+	queryInfo();
 }
 
 tristate RGB::querySingleReading(){
@@ -165,6 +165,7 @@ tristate RGB::queryInfo(){
 		if ( pch[0] == 'V') {
 			// Parse version
 			result = TRI_ON;
+			_setConnected();
 			strncpy(_firmware_version,pch,sizeof(_firmware_version));
 		}
 		pch = strtok(NULL, ",\r");

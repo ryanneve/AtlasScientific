@@ -252,7 +252,6 @@ ezo_response EZO::fixBaudRate(uint32_t desired_baud_rate){
 	uint32_t baud_rates[] = {1200,38400,9600,19200,57600,2400,300,115200}; // 8 choices in order of likelyhood.
 	uint8_t i = 0;
 	ezo_response response;
-	char buf[5];
 	for ( i = 0 ; i < 7 ; i++) {
 		//Serial.print("Trying baud rate:"); Serial.println(baud_rates[i]);
 		Serial_AS->begin(baud_rates[i]); // Sets local baud rate
@@ -346,21 +345,16 @@ void EZO::_initialize() {
 	Serial.println("Serial flushed, ");
 #endif
 	enableResponse();
-	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) {
-		setConnected();
-#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Continuous readings disabled.");
-#endif
-	}
+	disableContinuousReadings();
 	queryResponse();
-	if ( queryContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
+	queryContinuousReadings();
 #ifdef ATLAS_EZO_DEBUG
 	char buf[40];
 	sprintf(buf,"Continuous result: %s.",getResult());
 	Serial.println(buf);
 #endif
-	if ( queryStatus() == EZO_RESPONSE_OK ) setConnected();
-	if ( queryInfo() == EZO_RESPONSE_OK ) setConnected();
+	queryStatus();
+	queryInfo();
 }
 
 
@@ -426,14 +420,14 @@ ezo_response EZO::_getResponse(){ // Serial only
 		_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
 		// format: "*<ezo_response>\r"
 		if (_response_mode == TRI_OFF)			_last_response = EZO_RESPONSE_NA;
-		else if ( !memcmp(_response,"*OK",3))	_last_response = EZO_RESPONSE_OK;
-		else if ( !memcmp(_response,"*ER",3))	_last_response = EZO_RESPONSE_ER;
-		else if ( !memcmp(_response,"*OV",3))	_last_response = EZO_RESPONSE_OV;
-		else if ( !memcmp(_response,"*UV",3))	_last_response = EZO_RESPONSE_UV;
-		else if ( !memcmp(_response,"*RS",3))	_last_response = EZO_RESPONSE_RS;
-		else if ( !memcmp(_response,"*RE",3))	_last_response = EZO_RESPONSE_RE;
-		else if ( !memcmp(_response,"*SL",3))	_last_response = EZO_RESPONSE_SL;
-		else if ( !memcmp(_response,"*WA",3))	_last_response = EZO_RESPONSE_WA;
+		else if ( !memcmp(_response,"*OK",3))	{ _last_response = EZO_RESPONSE_OK; _setConnected(); }
+		else if ( !memcmp(_response,"*ER",3))	{ _last_response = EZO_RESPONSE_ER; _setConnected(); }
+		else if ( !memcmp(_response,"*OV",3))	{ _last_response = EZO_RESPONSE_OV; _setConnected(); }
+		else if ( !memcmp(_response,"*UV",3))	{ _last_response = EZO_RESPONSE_UV; _setConnected(); }
+		else if ( !memcmp(_response,"*RS",3))	{ _last_response = EZO_RESPONSE_RS; _setConnected(); }
+		else if ( !memcmp(_response,"*RE",3))	{ _last_response = EZO_RESPONSE_RE; _setConnected(); }
+		else if ( !memcmp(_response,"*SL",3))	{ _last_response = EZO_RESPONSE_SL; _setConnected(); }
+		else if ( !memcmp(_response,"*WA",3))	{ _last_response = EZO_RESPONSE_WA; _setConnected(); }
 		else									_last_response = EZO_RESPONSE_UK;
 	}
 #ifdef ATLAS_EZO_DEBUG
@@ -474,13 +468,13 @@ void EZO::_geti2cResult(){
 
 void EZO_DO::initialize() {
 	_initialize();
-	if ( disableContinuousReadings() == EZO_RESPONSE_OK ) setConnected();
-	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
-	if ( querySalComp()		== EZO_RESPONSE_OK ) setConnected();
-	if ( queryPresComp()	== EZO_RESPONSE_OK ) setConnected();
+	disableContinuousReadings();
+	queryTempComp();
+	querySalComp();
+	queryPresComp();
 	//enableOutput(DO_OUT_PERCENT_SAT);
 	//enableOutput(DO_OUT_DO_MGL);
-	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
+	queryOutput();
 #ifdef ATLAS_EZO_DEBUG
 	Serial.println("DO Initialization Done");
 #endif
@@ -521,8 +515,8 @@ void  EZO_DO::printOutputs(){
 	Serial.print("DO outputs:");
 	if ( _sat_output == TRI_ON ) Serial.print("Sat% ");
 	else if ( _sat_output == TRI_UNKNOWN )  Serial.print("?Sat% ");
-	if ( _dox_output == TRI_ON ) Serial.print("DOX mg/l ");
-	else if ( _dox_output == TRI_UNKNOWN )  Serial.print("?DOX mg/l ");
+	if ( _dox_output == TRI_ON ) Serial.print("DOX_mg/l ");
+	else if ( _dox_output == TRI_UNKNOWN )  Serial.print("?DOX_mg/l ");
 	Serial.println();
 }
 tristate EZO_DO::getOutput(do_output output) {
@@ -659,14 +653,10 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 
 void EZO_EC::initialize() {
 	_initialize();
-	if ( queryCalibration()	== EZO_RESPONSE_OK ) setConnected();
-	if ( queryK()			== EZO_RESPONSE_OK ) setConnected();
-	if ( queryTempComp()	== EZO_RESPONSE_OK ) setConnected();
-	//enableOutput(EZO_EC_OUT_EC);
-	//enableOutput(EZO_EC_OUT_TDS);
-	//enableOutput(EZO_EC_OUT_S);
-	//enableOutput(EZO_EC_OUT_SG);
-	if ( queryOutput()		== EZO_RESPONSE_OK ) setConnected();
+	queryCalibration();
+	queryK();
+	queryTempComp();
+	queryOutput();
 #ifdef ATLAS_EZO_DEBUG
 	Serial.println(F("EC Initialization Done"));
 #endif

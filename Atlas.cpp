@@ -33,7 +33,6 @@ void Atlas::begin() {
 	flushSerial();
 }
 
-
 uint16_t Atlas::flushSerial(){
 	if ( offline() ) return 0;
 	uint16_t flushed = 0;
@@ -44,10 +43,7 @@ uint16_t Atlas::flushSerial(){
 	return flushed;
 }
 
-
-
-
-void Atlas::setConnected() {
+void Atlas::_setConnected() {
 	if ( ! _connected ) {
 		_connected = true;
 #ifdef ATLAS_DEBUG

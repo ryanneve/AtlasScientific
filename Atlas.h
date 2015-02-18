@@ -52,7 +52,6 @@ class Atlas {
 		bool			offline() const { return ! _online;} // Multiplexer switched to different instrument.
 		void			setOnline();
 		void			setOffline();
-		void			setConnected(); // Once connected, assume we stay connected.
 		bool			connected() const { return _connected;}
 		char			read() { return Serial_AS->read();} // Used for console mode
 		void			write(char write_char) { Serial_AS->write(write_char); }
@@ -65,6 +64,7 @@ class Atlas {
 		uint16_t		flushSerial();
 		int16_t			_delayUntilSerialData(uint32_t delay_millis) const;
 		uint8_t			_strCmp(const char *str1, const char *str2) const ;
+		void			_setConnected(); // Once connected, assume we stay connected.
 		
 		uint32_t		_baud_rate;
 		char			_result[ATLAS_SERIAL_RESULT_LEN];
