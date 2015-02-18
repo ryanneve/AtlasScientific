@@ -21,10 +21,13 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 		ORP	v2.0
 		PH	v2.0
 ============================================================================*/
+
+//#define ATLAS_EZO_DEBUG
+
+
 #include <HardwareSerial.h>
 #include <Atlas_EZO.h>
 
-//#define ATLAS_EZO_DEBUG
 
 /*              COMMON PUBLIC METHODS                      */
 #ifdef ATLAS_EZO_DEBUG
@@ -381,7 +384,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 #endif
 			i++;
 			byte_to_send = command[i];
-		}
+	}
 		if ( has_result ) {
 			if ( _delayUntilSerialData(10000) != -1 ) {
 				_getResult(result_delay);
@@ -707,18 +710,21 @@ ezo_response EZO_EC::queryOutput() {
 	strncpy(_command,"O,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
-	if (_result[0] == '?' && _result[1] == 'O' && _result[2] == ',') {
+#ifdef ATLAS_EZO_DEBUG
+	Serial.print("EC Parsing:");Serial.println(_result);
+#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?O,")) {
 		_ec_output  = TRI_OFF;
 		_tds_output = TRI_OFF;
 		_s_output   = TRI_OFF;
 		_sg_output  = TRI_OFF;
-		char * pch;
-		pch = strtok(_result+ 3,",\r");
 		while ( pch != NULL) {
 			if ( !_strCmp(pch,"EC"))  _ec_output  = TRI_ON;
-			if ( !_strCmp(pch,"TDS")) _tds_output = TRI_ON;
-			if ( !_strCmp(pch,"S"))   _s_output   = TRI_ON;
-			if ( !_strCmp(pch,"SG"))  _sg_output  = TRI_ON;
+			else if ( !_strCmp(pch,"TDS")) _tds_output = TRI_ON;
+			else if ( !_strCmp(pch,"S"))   _s_output   = TRI_ON;
+			else if ( !_strCmp(pch,"SG"))  _sg_output  = TRI_ON;
 			pch = strtok(NULL, ",\r");
 		}
 	}
