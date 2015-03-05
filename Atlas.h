@@ -46,6 +46,7 @@ class Atlas {
 			_debug = false;
 		}
 		void			begin();
+		void			begin(uint32_t baud_rate);
 		void			begin(HardwareSerial *serial,uint32_t baud_rate);
 		uint32_t		getBaudRate() const {return _baud_rate;}
 		bool			online() const { return _online;} 

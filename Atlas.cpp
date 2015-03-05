@@ -24,11 +24,17 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #endif
 
 void Atlas::begin(HardwareSerial *serial,uint32_t baud_rate) {
-	_baud_rate = baud_rate;
+	// Need to do this at least once
 	Serial_AS = serial;
+	begin(baud_rate);
+}
+void Atlas::begin(uint32_t baud_rate) {
+	// To change baud rate
+	_baud_rate = baud_rate;
 	begin();
 }
 void Atlas::begin() {
+	// To re-establish communitactions
 	Serial_AS->begin(_baud_rate);
 	flushSerial();
 }
