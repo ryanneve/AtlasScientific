@@ -20,6 +20,8 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 ============================================================================*/
 //#define ATLAS_RGB_DEBUG
 
+#define NO_ATLAS_COMS -888		// Couldn't communicate with Atlas sensor.
+
 #include <HardwareSerial.h>
 #include <AtlasRGB.h>
 
@@ -28,12 +30,13 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 /*               PUBLIC METHODS                      */
 
 void RGB::initialize(){
+	flushSerial();
 	disableContinuousReadings();
 	queryInfo();
 }
 
 tristate RGB::querySingleReading(){
-	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
+	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH); // This is the single reading command
 	_sendCommand(_command,true);
 #ifdef ATLAS_RGB_DEBUG
 	if ( debug() ) {
@@ -45,6 +48,21 @@ tristate RGB::querySingleReading(){
 		if ( _rgb_mode == RGB_ALL) Serial.println("ALL");
 	}
 #endif
+	uint8_t min_len;
+	if ( _rgb_mode == RGB_DEFAULT ) min_len = 5; // "0,0,0" is shortest possible
+	if ( _rgb_mode == RGB_LUX ) min_len = 9;
+	if ( _rgb_mode == RGB_ALL ) min_len = 15;
+	if ( _result_len < min_len ){ // Didn't get anything from RGB sensor. 
+		_red = NO_ATLAS_COMS;
+		_blue = NO_ATLAS_COMS;
+		_green = NO_ATLAS_COMS;
+		_lx_red = NO_ATLAS_COMS;
+		_lx_blue = NO_ATLAS_COMS;
+		_lx_green = NO_ATLAS_COMS;
+		_lx_total = NO_ATLAS_COMS;
+		_lx_beyond = NO_ATLAS_COMS;
+		return TRI_OFF;
+	}
 	// now parse _result
 	// response will depend on _mode.	
 	bool _red_parsed = false;
