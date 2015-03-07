@@ -23,12 +23,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #define _Atlas_RGB_h
 
 
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-#else
-	#include "WProgram.h"
-#endif
-
+#define <Arduino.h>
 //#include <stdint.h>
 #include <HardwareSerial.h>
 #include <Atlas.h>
@@ -61,6 +56,7 @@ class RGB: public Atlas {
 			_saturated = false;
 		}
 		void			initialize();
+		void			initialize(rgb_mode mode);
 		tristate		querySingleReading();
 		void			enableContinuousReadings();
 		void			disableContinuousReadings();
@@ -69,14 +65,14 @@ class RGB: public Atlas {
 		rgb_mode		getMode(){return _rgb_mode;}
 		char *			getFirmwareVer(){return _firmware_version;}
 		char *			getFirmwareDate(){return _firmware_date;}\
-		uint16_t		getRed() const {return _red;}
-		uint16_t		getGreen() const {return _green;}
-		uint16_t		getBlue() const {return _blue;}
-		uint16_t		getLuxRed() const {return _lx_red;}
-		uint16_t		getLuxGreen() const {return _lx_green;}
-		uint16_t		getLuxBlue() const {return _lx_blue;}
-		uint16_t		getLuxTotal() const {return _lx_total;}
-		uint16_t		getLuxBeyond() const {return _lx_beyond;}
+		int16_t		getRed() const {return _red;}
+		int16_t		getGreen() const {return _green;}
+		int16_t		getBlue() const {return _blue;}
+		int16_t		getLuxRed() const {return _lx_red;}
+		int16_t		getLuxGreen() const {return _lx_green;}
+		int16_t		getLuxBlue() const {return _lx_blue;}
+		int16_t		getLuxTotal() const {return _lx_total;}
+		int16_t		getLuxBeyond() const {return _lx_beyond;}
 		bool			getSaturated() const {return _saturated;}
 		char			red[RGB_DATA_LEN];
 		char			green[RGB_DATA_LEN];
@@ -91,14 +87,14 @@ class RGB: public Atlas {
 		void			_sendCommand(char * command, bool has_result);
 		void			_sendCommand(char * command, bool has_result,uint16_t result_delay);
 		rgb_mode		_rgb_mode;
-		uint16_t		_red;
-		uint16_t		_green;
-		uint16_t		_blue;
-		uint16_t		_lx_red;
-		uint16_t		_lx_green;
-		uint16_t		_lx_blue;
-		uint16_t		_lx_total;
-		uint16_t		_lx_beyond;
+		int16_t		_red;
+		int16_t		_green;
+		int16_t		_blue;
+		int16_t		_lx_red;
+		int16_t		_lx_green;
+		int16_t		_lx_blue;
+		int16_t		_lx_total;
+		int16_t		_lx_beyond;
 		bool			_saturated;
 		char			_firmware_version[10];
 		char			_firmware_date[10];

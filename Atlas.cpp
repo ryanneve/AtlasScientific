@@ -17,11 +17,13 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 	
 ============================================================================*/
 #include "Atlas.h"
+
+//#define ATLAS_DEBUG
 #ifdef ATLAS_EZO_DEBUG
-	#define ATLAS_DEBUG 1
+	#define ATLAS_DEBUG
 #endif 
 #ifdef ATLAS_RGB_DEBUG
-	#define ATLAS_DEBUG 1
+	#define ATLAS_DEBUG
 #endif
 
 void Atlas::begin(HardwareSerial *serial,uint32_t baud_rate) {
@@ -85,7 +87,7 @@ void Atlas::_getResult(uint16_t result_delay){
 	else _result_len = 0;
 	_result[_result_len] = 0; // null terminate
 #ifdef ATLAS_DEBUG
-	if ( debug() ) { Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);}
+	Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);
 #endif
 }
 

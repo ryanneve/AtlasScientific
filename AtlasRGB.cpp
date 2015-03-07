@@ -20,7 +20,9 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 ============================================================================*/
 //#define ATLAS_RGB_DEBUG
 
-#define NO_ATLAS_COMS -888		// Couldn't communicate with Atlas sensor.
+#define NO_SENSOR_DATA		-999	// This means we didn't want the data based on configuration
+#define NO_SENSOR_COMMS		-888	// Couldn't communicate with sensor
+#define SENSOR_COMMS_FAILED	-777	// Communications with sensor failing.
 
 #include <HardwareSerial.h>
 #include <AtlasRGB.h>
@@ -30,37 +32,52 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 /*               PUBLIC METHODS                      */
 
 void RGB::initialize(){
+	initialize(RGB_UNKNOWN);
+}
+
+void RGB::initialize(rgb_mode mode){
+	// initialize to NO_SENSOR_DATA beacause we may never query some of these based on configuration.
+	_red		= NO_SENSOR_DATA;
+	_blue		= NO_SENSOR_DATA;
+	_green		= NO_SENSOR_DATA;
+	_lx_red		= NO_SENSOR_DATA;
+	_lx_blue	= NO_SENSOR_DATA;
+	_lx_green	= NO_SENSOR_DATA;
+	_lx_total	= NO_SENSOR_DATA;
+	_lx_beyond	= NO_SENSOR_DATA;
 	flushSerial();
 	disableContinuousReadings();
 	queryInfo();
+	if ( connected() &&  mode != RGB_UNKNOWN) setMode(mode);
 }
 
 tristate RGB::querySingleReading(){
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH); // This is the single reading command
 	_sendCommand(_command,true);
 #ifdef ATLAS_RGB_DEBUG
-	if ( debug() ) {
-		Serial.print(F("qSR got _result: ")); Serial.println(_result);
-		Serial.print(F("_mode is: "));
-		if ( _rgb_mode == RGB_UNKNOWN) Serial.println("?");
-		if ( _rgb_mode == RGB_DEFAULT) Serial.println("RGB");
-		if ( _rgb_mode == RGB_LUX) Serial.println("lx");
-		if ( _rgb_mode == RGB_ALL) Serial.println("ALL");
-	}
+	Serial.print(F("qSR got _result: ")); Serial.println(_result);
+	Serial.print(F("_mode is: "));
+	if ( _rgb_mode == RGB_UNKNOWN) Serial.println("?");
+	if ( _rgb_mode == RGB_DEFAULT) Serial.println("RGB");
+	if ( _rgb_mode == RGB_LUX) Serial.println("lx");
+	if ( _rgb_mode == RGB_ALL) Serial.println("ALL");
 #endif
 	uint8_t min_len;
 	if ( _rgb_mode == RGB_DEFAULT ) min_len = 5; // "0,0,0" is shortest possible
 	if ( _rgb_mode == RGB_LUX ) min_len = 9;
 	if ( _rgb_mode == RGB_ALL ) min_len = 15;
-	if ( _result_len < min_len ){ // Didn't get anything from RGB sensor. 
-		_red = NO_ATLAS_COMS;
-		_blue = NO_ATLAS_COMS;
-		_green = NO_ATLAS_COMS;
-		_lx_red = NO_ATLAS_COMS;
-		_lx_blue = NO_ATLAS_COMS;
-		_lx_green = NO_ATLAS_COMS;
-		_lx_total = NO_ATLAS_COMS;
-		_lx_beyond = NO_ATLAS_COMS;
+	if ( _result_len < min_len ){ // Didn't get anything appropriate from RGB sensor.
+		int16_t sensor_status;
+		if ( connected() ) sensor_status = SENSOR_COMMS_FAILED;
+		else sensor_status = NO_SENSOR_COMMS;
+		_red		= sensor_status;
+		_blue		= sensor_status;
+		_green		= sensor_status;
+		_lx_red		= sensor_status;
+		_lx_blue	= sensor_status;
+		_lx_green	= sensor_status;
+		_lx_total	= sensor_status;
+		_lx_beyond	= sensor_status;
 		return TRI_OFF;
 	}
 	// now parse _result
@@ -162,9 +179,31 @@ tristate RGB::setMode(rgb_mode mode) {
 #endif
 	_sendCommand(_command,true);
 	// The ENV-RGB will respond:  "[RGB|lx|RGB+lx]\r"
-	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT)		result = TRI_ON;
-	else if ( !_strCmp(_result,"lx") && mode == RGB_LUX)		result = TRI_ON;
-	else if ( !_strCmp(_result,"RGB+lx") && mode == RGB_ALL)	result = TRI_ON;
+	if ( !_strCmp(_result,"RGB") && mode == RGB_DEFAULT){
+		result = TRI_ON;
+		_lx_red		= NO_SENSOR_DATA;
+		_lx_blue	= NO_SENSOR_DATA;
+		_lx_green	= NO_SENSOR_DATA;
+		_lx_total	= NO_SENSOR_DATA;
+		_lx_beyond	= NO_SENSOR_DATA;
+	}
+	else if ( !_strCmp(_result,"lx") && mode == RGB_LUX) {
+		result = TRI_ON;
+		_red		= NO_SENSOR_DATA;
+		_blue		= NO_SENSOR_DATA;
+		_green		= NO_SENSOR_DATA;
+	}
+	else if ( !_strCmp(_result,"RGB+lx") && mode == RGB_ALL) {
+		result = TRI_ON;
+		_red		= NO_SENSOR_DATA;
+		_blue		= NO_SENSOR_DATA;
+		_green		= NO_SENSOR_DATA;
+		_lx_red		= NO_SENSOR_DATA;
+		_lx_blue	= NO_SENSOR_DATA;
+		_lx_green	= NO_SENSOR_DATA;
+		_lx_total	= NO_SENSOR_DATA;
+		_lx_beyond	= NO_SENSOR_DATA;
+	}
 	else result = TRI_OFF;
 	return result;
 }
