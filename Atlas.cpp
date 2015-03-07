@@ -19,7 +19,8 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #include "Atlas.h"
 #ifdef ATLAS_EZO_DEBUG
 	#define ATLAS_DEBUG 1
-#elif ATLAS_RGB_DEBUG
+#endif 
+#ifdef ATLAS_RGB_DEBUG
 	#define ATLAS_DEBUG 1
 #endif
 
