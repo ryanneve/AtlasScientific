@@ -23,7 +23,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #define _Atlas_RGB_h
 
 
-#define <Arduino.h>
+#include <Arduino.h>
 //#include <stdint.h>
 #include <HardwareSerial.h>
 #include <Atlas.h>
