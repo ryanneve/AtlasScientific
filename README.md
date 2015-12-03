@@ -17,6 +17,8 @@
 
 ## To be done: ##
 
+* Put in proper Arduino Library format. See https://github.com/arduino/Arduino/wiki/Arduino-IDE-1.5:-Library-specification
+* Rename Atlas.* to atlasscientific.*
 * Test on non-Mega2560 arduino
 * Examples
 * Not tested on ORP sensor (don't have one)
