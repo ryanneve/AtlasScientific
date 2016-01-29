@@ -17,6 +17,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 	
 	Based on Atlas Scientific datasheets:
 		RGB	v1.6
+		NOTE THAT THIS IS NOT FOR THE EZO_RGB sensor
 ============================================================================*/
 //#define ATLAS_RGB_DEBUG
 

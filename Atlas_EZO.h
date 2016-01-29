@@ -24,6 +24,8 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #ifndef Atlas_EZO_h
 #define Atlas_EZO_h
 
+#define ATLAS_EZO_DEBUG
+
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
 #else
@@ -48,7 +50,8 @@ enum ezo_circuit_type {
 	EZO_DO_CIRCUIT,
 	EZO_EC_CIRCUIT,
 	EZO_ORP_CIRCUIT,
-	EZO_PH_CIRCUIT
+	EZO_PH_CIRCUIT,
+	EZO_RGB_CIRCUIT
 };
 	
 enum ezo_response {
@@ -123,6 +126,8 @@ class EZO: public Atlas {
 		ezo_response	enableResponse();
 		ezo_response	disableResponse();
 		tristate		queryResponse();
+		ezo_response	getLastResponse(){return _last_response;}
+		void			printLastResponse();
 #ifdef ATLAS_EZO_DEBUG
 		void			printResponse(char * buf, ezo_response response);
 #endif
@@ -344,5 +349,98 @@ class EZO_PH: public EZO {
 		float	_ph;
 };
 
+
+/*-------------------- RGB --------------------*/
+
+
+enum ezo_rgb_output {
+	EZO_RGB_UNKNOWN		= 0,
+	EZO_RGB_OUT_RGB		= 1,
+	EZO_RGB_OUT_PROX	= 2,
+	EZO_RGB_OUT_LUX		= 4,
+	EZO_RGB_OUT_CIE		= 8
+};
+
+class EZO_RGB: public EZO {
+	public:
+		EZO_RGB() {
+			_ezo_rgb_output = EZO_RGB_UNKNOWN;
+			_rgb_output		= TRI_UNKNOWN;
+			_prox_output	= TRI_UNKNOWN;
+			_lux_output		= TRI_UNKNOWN;
+			_cie_output		= TRI_UNKNOWN;
+			_brightness		= -1; // unknown, will be 0 - 100
+			_auto_bright	= TRI_UNKNOWN;
+		}
+		void			initialize();
+		ezo_response	queryOutput();
+		tristate		getOutput(ezo_rgb_output output);
+		void			printOutputs();
+		ezo_response	enableOutput(ezo_rgb_output output);
+		ezo_response	disableOutput(ezo_rgb_output output);
+		
+		ezo_response	calibrate();
+		// NEW section
+		ezo_response	setLEDbrightness(int8_t brightness); // Brightness is 0 to 100
+		ezo_response	setLEDbrightness(int8_t brightness,bool auto_led); // Brightness is 0 to 100
+		ezo_response	queryLEDbrightness(); // Brightness is 0 to 100
+		int8_t			getLEDbrightness() {return _brightness;}
+		// NEW section
+		ezo_response	enableProximity();
+		ezo_response	enableProximity(uint8_t distance);
+		ezo_response	proximityLED_Low();
+		ezo_response	proximityLED_Med();
+		ezo_response	proximityLED_High();
+		ezo_response	disableProximity();
+		ezo_response	queryProximity();
+		// New section
+		ezo_response	enableMatching();
+		ezo_response	disableMatching();
+		ezo_response	queryMatching();
+		// New section
+		ezo_response	setGamma(float gamma_correction);
+		ezo_response	queryGamma();
+		
+		
+		ezo_response	querySingleReading();
+		int16_t			getRed() const {return _red;}
+		int16_t			getGreen() const {return _green;}
+		int16_t			getBlue() const {return _blue;}
+		int16_t			getProx() const {return _prox;}
+		int16_t			getLux() const {return _lux;}
+		float			getCIE_x() const {return _cie_x;}
+		float			getCIE_y() const {return _cie_y;}
+		int32_t			getCIE_Y() const {return _cie_Y;}
+
+		char			red[5];
+		char			green[5];
+		char			blue[5];
+		char			prox[6];
+		char			lux[7];
+		char			cie_x[6];
+		char			cie_y[6];
+		char			cie_Y[7];
+	protected:
+	private:
+		ezo_response	_changeOutput(ezo_rgb_output output,int8_t enable_output); //DONE
+		
+		int8_t		_brightness;	// 0 - 100 % -1 = unknown
+		tristate	_auto_bright;
+		ezo_rgb_output	_ezo_rgb_output;
+		int16_t		_red;	// 0 - 255
+		int16_t		_green;	// 0 - 255
+		int16_t		_blue;	// 0 - 255
+		int16_t		_prox;	// 0 to 1023 but usually above 250
+		int32_t		_lux;	// 0 - 65535
+		float		_cie_x;	// 0.0 to 0.85
+		float		_cie_y;	// 0.0 to 0.85
+		int32_t		_cie_Y;	// 0 to 65535
+	
+
+		tristate		_rgb_output;
+		tristate		_prox_output;
+		tristate		_lux_output;
+		tristate		_cie_output;
+};
 
 #endif

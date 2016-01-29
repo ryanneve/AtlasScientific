@@ -18,12 +18,13 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 ============================================================================*/
 #include "Atlas.h"
 
-//#define ATLAS_DEBUG
+#define ATLAS_DEBUG 1
+#define ATLAS_EZO_DEBUG 1
 #ifdef ATLAS_EZO_DEBUG
-	#define ATLAS_DEBUG
+	#define ATLAS_DEBUG 1
 #endif 
 #ifdef ATLAS_RGB_DEBUG
-	#define ATLAS_DEBUG
+	#define ATLAS_DEBUG 1
 #endif
 
 void Atlas::begin(HardwareSerial *serial,uint32_t baud_rate) {
@@ -37,18 +38,20 @@ void Atlas::begin(uint32_t baud_rate) {
 	begin();
 }
 void Atlas::begin() {
-	// To re-establish communitactions
+	// To re-establish communications
 	Serial_AS->begin(_baud_rate);
 	flushSerial();
 }
 
 uint16_t Atlas::flushSerial(){
+	Serial.print("Flushing Serial ");
 	if ( offline() ) return 0;
 	uint16_t flushed = 0;
 	while (Serial_AS->available()) {
 		Serial_AS->read();
 		flushed++;
 	}
+	Serial.print("Flushed "); Serial.println(flushed);
 	return flushed;
 }
 
@@ -75,15 +78,21 @@ int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis) const{
 	while ( (millis() - _request_start) <= delay_millis)
 	{
 		peek_byte = Serial_AS->peek();
-		if ( peek_byte != -1 ) return peek_byte;
+		if ( peek_byte == 13 ) Serial_AS->read(); // pop off a CR.
+		else if ( peek_byte != -1 ) return peek_byte;
 	}
 	return -1;
 }
 
 void Atlas::_getResult(uint16_t result_delay){
 	// read last message from Serial_AS and save it to _result.
-	if ( result_delay ) _delayUntilSerialData(result_delay);
-	if ( online() ) _result_len = Serial_AS->readBytesUntil('\r',_result,ATLAS_SERIAL_RESULT_LEN);
+	if ( result_delay ) Serial.print(_delayUntilSerialData(result_delay));
+	else Serial.print("noDelay");
+	if ( online() ) {
+		Serial_AS->setTimeout(3000);
+		_result_len = Serial_AS->readBytesUntil('\r',_result,ATLAS_SERIAL_RESULT_LEN);
+		Serial_AS->setTimeout(1000); // default
+	}
 	else _result_len = 0;
 	_result[_result_len] = 0; // null terminate
 #ifdef ATLAS_DEBUG
@@ -93,6 +102,7 @@ void Atlas::_getResult(uint16_t result_delay){
 
 
 uint8_t Atlas::_strCmp(const char *str1, const char *str2) const {
+	// Compares two strings. returns mismatch or 0 if they match
 	while (*str1 && *str1 == *str2)
 	++str1, ++str2;
 	return *str1;

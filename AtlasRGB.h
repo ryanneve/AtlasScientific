@@ -64,7 +64,7 @@ class RGB: public Atlas {
 		tristate		setMode(rgb_mode);
 		rgb_mode		getMode(){return _rgb_mode;}
 		char *			getFirmwareVer(){return _firmware_version;}
-		char *			getFirmwareDate(){return _firmware_date;}\
+		char *			getFirmwareDate(){return _firmware_date;}
 		int16_t		getRed() const {return _red;}
 		int16_t		getGreen() const {return _green;}
 		int16_t		getBlue() const {return _blue;}

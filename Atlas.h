@@ -24,12 +24,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 #define ATLAS_SERIAL_RESULT_LEN 50
 #define ATLAS_COMMAND_LENGTH 20
 
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-#else
-	#include "WProgram.h"
-#endif
-
+#include <Arduino.h>
 #include <HardwareSerial.h>
 
 enum tristate {
@@ -41,7 +36,7 @@ enum tristate {
 class Atlas {
 	public:
 		Atlas() {
-			_connected = false; // No communicatione seen
+			_connected = false; // No communications seen
 			_online = true; // Only used if there is a multiplexer
 			_debug = false;
 		}
@@ -59,10 +54,10 @@ class Atlas {
 		void			debugOn(){ _debug = true;}
 		void			debugOff(){_debug = false;}
 		bool			debug() const {return _debug;}
+		uint16_t		flushSerial(); // protected
 	protected:
 		HardwareSerial*	Serial_AS;
 		void			_getResult(uint16_t result_delay); // reads line into _result[]
-		uint16_t		flushSerial();
 		int16_t			_delayUntilSerialData(uint32_t delay_millis) const;
 		uint8_t			_strCmp(const char *str1, const char *str2) const ;
 		void			_setConnected(); // Once connected, assume we stay connected.

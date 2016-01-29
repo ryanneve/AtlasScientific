@@ -22,7 +22,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 		PH	v2.0
 ============================================================================*/
 
-//#define ATLAS_EZO_DEBUG
+#define ATLAS_EZO_DEBUG
 
 
 #include <HardwareSerial.h>
@@ -209,6 +209,7 @@ tristate EZO::queryResponse() {
 		// Parse _result. Reply should be "?RESPONSE,<1|0>\r";
 		char * pch;
 		pch = strtok(_result,",\r");
+		//Serial.print("Checking("); Serial.print(pch); Serial.println(")");
 		if ( !_strCmp(pch,"?RESPONSE")) {
 			pch = strtok(NULL, ",\r");
 			if ( pch[0] == '0') 		_response_mode = TRI_OFF;
@@ -224,6 +225,7 @@ tristate EZO::queryResponse() {
 	}
 	return _response_mode;
 }
+
 
 ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	// Command is "SERIAL,<baud_rate>\r"
@@ -290,6 +292,7 @@ ezo_response EZO::queryStatus(){
 	ezo_response response = _sendCommand(_command, true, true);
 	// _result should be in the format "?STATUS,<ezo_restart_code>,<voltage>\r"
 	// parse code into ezo_restart_code;
+	Serial.print("Parsing("); Serial.print(_result); Serial.println(")");
 	char code = 'U';
 	if ( _result[0] == '?' ) {
 		code = _result[8];
@@ -302,6 +305,7 @@ ezo_response EZO::queryStatus(){
 			default:  _restart_code = EZO_RESTART_N; break;	// none or no response
 		}
 		// parse voltage
+		Serial.print("Parsing("); Serial.print(_result+10); Serial.println(")");
 		_voltage = atof(_result + 10);
 #ifdef ATLAS_EZO_DEBUG
 		if ( debug() ) { Serial.print("Voltage is:"); Serial.println(_voltage);}
@@ -343,20 +347,40 @@ ezo_response EZO::queryTempComp(){
 void EZO::_initialize() {
 	// Get setup values
 	delay(2000);
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println("Flushing Serial, ");
+	#endif
 	flushSerial();
-#ifdef ATLAS_EZO_DEBUG
-	Serial.println("Serial flushed, ");
-#endif
-	enableResponse();
-	disableContinuousReadings();
+	
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println("Querying Response, ");
+	#endif
 	queryResponse();
+	if ( _response_mode != TRI_ON) {
+		#ifdef ATLAS_EZO_DEBUG
+			Serial.println("Enabling RESPONSE, ");
+		#endif
+		enableResponse();
+	}
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println("Disabling continuous readings, ");
+	#endif
+	disableContinuousReadings();
+
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println("Querying continuous readings, ");
+	#endif
 	queryContinuousReadings();
-#ifdef ATLAS_EZO_DEBUG
-	char buf[40];
-	sprintf(buf,"Continuous result: %s.",getResult());
-	Serial.println(buf);
-#endif
+	#ifdef ATLAS_EZO_DEBUG
+		char buf[40];
+		sprintf(buf,"Continuous result: %s.",getResult());
+		Serial.println(buf);
+		Serial.println("Querying status, ");
+	#endif
 	queryStatus();
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println("Querying info ");
+	#endif
 	queryInfo();
 }
 
@@ -419,7 +443,8 @@ ezo_response EZO::_getResponse(){ // Serial only
 	else {
 		// If _resonse_mode is ON, check for command response.
 		// Response should be a two letter code preceded by '*'
-		if ( Serial_AS->peek() == -1 ) _delayUntilSerialData(1000); // no data yet
+		//if ( Serial_AS->peek() == -1 || ) 
+		_delayUntilSerialData(1000); // Wait for first non <CR> data
 		_response_len = Serial_AS->readBytesUntil('\r',_response,EZO_RESPONSE_LENGTH);
 		// format: "*<ezo_response>\r"
 		if (_response_mode == TRI_OFF)			_last_response = EZO_RESPONSE_NA;
@@ -879,3 +904,181 @@ ezo_response EZO_PH::querySingleReading() {
 }
 
 /*              pH PRIVATE  METHODS                      */
+
+
+/*              RGB PUBLIC METHODS                      */
+void EZO_RGB::initialize() {
+	_initialize();
+	RGB_sensor.setLEDbrightness(1,true);
+	RGB_sensor.queryLEDbrightness();
+	// LED and IR brightness
+#ifdef ATLAS_EZO_DEBUG
+	Serial.println(F("RGB Initialization Done"));
+#endif
+}
+
+ezo_response EZO_RGB::querySingleReading()  {
+	int8_t width;
+	uint8_t precision;
+	enum parsing_modes {PARSING_RGB,PARSING_PROX,PARSING_LUX,PARSING_CIE};
+	parsing_modes parsing_data = PARSING_RGB;
+	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,4000,true); // with 2 sec timeout
+	// Response is a comma delimited set of numbers which end in "\r". There may be up to 6 parameters in the following order:
+	// [R,G,B,][P,<prox>,][Lux,<lux>,][xyY,<CIE_x>,<CIE_y>,<CIE_Y>]. The format of the output is determined by queryOutput() and saved in _xx_output.
+	Serial.print("Parsing :"); Serial.println(_result);
+	char * pch;
+	pch = strtok(_result,",\r");
+	while ( pch != NULL) {
+		//Serial.print("  parsing:"); Serial.print(pch);
+		if		( !_strCmp(pch,"xyY,") ) parsing_data = PARSING_CIE;
+		else if ( !_strCmp(pch,"Lux,") ) parsing_data = PARSING_LUX;
+		else if ( !_strCmp(pch,"P,"  ) ) parsing_data = PARSING_PROX;
+		else parsing_data = PARSING_RGB; // Which for some reason has no preceding tag.
+		switch (parsing_data){
+			case PARSING_RGB:
+				//Serial.println(" = RGB");
+				// Should already have red value
+				strncpy(red,pch,sizeof(red));
+				_red = atoi(pch);			// Convert parsed string to integer 
+				pch = strtok(NULL, ",\r");	// Next value (green)
+				strncpy(green,pch,sizeof(green));
+				_green = atoi(pch);
+				pch = strtok(NULL, ",\r");	// Next value (blue)
+				strncpy(blue,pch,sizeof(blue));
+				_blue = atoi(pch); 
+				break;
+			case PARSING_PROX:
+				//Serial.println(" = PROX");
+				pch = strtok(NULL, ",\r");	 // Get next value
+				strncpy(prox,pch,sizeof(prox));
+				_prox = atoi(prox); // Convert parsed string to integer
+				break;
+			case PARSING_LUX:
+				//Serial.println(" = LUX");
+				pch = strtok(NULL, ",\r");	 // Get next value
+				strncpy(lux,pch,sizeof(lux));
+				_lux = atoi(lux); // Convert parsed string to float attribute
+				break;
+			case PARSING_CIE:
+				//Serial.println(" = CIE");
+				// two floats then an int
+				pch = strtok(NULL, ",\r");	 // Get next value
+				strncpy(cie_x,pch,sizeof(cie_x));
+				_cie_x = atof(cie_x); // Convert parsed string to float attribute
+				pch = strtok(NULL, ",\r");	
+				strncpy(cie_y,pch,sizeof(cie_y));
+				_cie_y = atof(cie_y);
+				pch = strtok(NULL, ",\r");	 // Get next value
+				strncpy(cie_Y,pch,sizeof(cie_Y));
+				_cie_Y = atoi(cie_Y); // Convert parsed string to integer
+				break;
+		}
+		pch = strtok(NULL, ",\r");
+	}
+	return response;
+}
+
+ezo_response EZO_RGB::queryOutput() {
+	strncpy(_command,"O,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
+	// _response will be ?O,[RGB,][PROX,][LUX,][CIE] if all are enabled
+#ifdef ATLAS_EZO_DEBUG
+	Serial.print("RGB Parsing:");Serial.println(_result);
+#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?O,")) {
+		_rgb_output  = TRI_OFF;
+		_prox_output = TRI_OFF;
+		_lux_output  = TRI_OFF;
+		_cie_output  = TRI_OFF;
+		while ( pch != NULL) {
+			if		( !_strCmp(pch,"RGB"))	_rgb_output  = TRI_ON;
+			else if ( !_strCmp(pch,"PROX"))	_prox_output = TRI_ON;
+			else if ( !_strCmp(pch,"LUX"))	_lux_output  = TRI_ON;
+			else if ( !_strCmp(pch,"CIE"))	_cie_output  = TRI_ON;
+			pch = strtok(NULL, ",\r");
+		}
+	}
+	return response;
+}
+void  EZO_RGB::printOutputs(){
+	// No need to check _debug here
+	Serial.print("RGB outputs:");
+	if ( _rgb_output == TRI_ON ) Serial.print("RGB ");
+	else if ( _rgb_output == TRI_UNKNOWN )  Serial.print("?RGB ");
+	if ( _prox_output == TRI_ON ) Serial.print("PROX ");
+	else if ( _prox_output == TRI_UNKNOWN )  Serial.print("?PROX ");
+	if ( _lux_output == TRI_ON )   Serial.print("LUX ");
+	else if ( _lux_output == TRI_UNKNOWN )  Serial.print("?LUX ");
+	if ( _cie_output == TRI_ON )  Serial.print("CIE ");
+	else if ( _cie_output == TRI_UNKNOWN )  Serial.print("?CIE ");
+	Serial.println();
+}
+tristate EZO_RGB::getOutput(ezo_rgb_output output) {
+	switch (output) {
+		case EZO_RGB_OUT_RGB:	return _rgb_output;
+		case EZO_RGB_OUT_PROX:	return _prox_output;
+		case EZO_RGB_OUT_LUX:	return _lux_output;
+		case EZO_RGB_OUT_CIE:	return _cie_output;
+	}
+	return TRI_UNKNOWN;
+}
+ezo_response EZO_RGB::enableOutput(ezo_rgb_output output) {
+	return _changeOutput(output,1);
+}
+ezo_response EZO_RGB::disableOutput(ezo_rgb_output output) {
+	return _changeOutput(output,0);
+}
+
+ezo_response EZO_RGB::setLEDbrightness(int8_t brightness){
+	return setLEDbrightness(brightness,true);
+}
+ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,bool auto_led) {
+	// Brightness is 0 to 100
+	if ( auto_led ) _command_len = sprintf(_command,"L,%d,T\r",brightness);
+	else _command_len = sprintf(_command,"L,%d\r",brightness);
+	ezo_response response = _sendCommand(_command,true,true);
+	// Response is a comma delimited set of numbers which end in "\r". There may be up to 6 parameters in the following order:
+	// [R,G,B,][P,<prox>,][Lux,<lux>,][xyY,<CIE_x>,<CIE_y>,<CIE_Y>]. The format of the output is determined by queryOutput() and saved in _xx_output.
+	
+}
+ezo_response EZO_RGB::queryLEDbrightness() {
+	strncpy(_command,"L,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// Response is:
+	// ?L,<%>[,T]<CR>
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.print("RGB Parsing:");Serial.println(_result);
+	#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?L,")) {
+		pch = strtok(NULL, ",\r");
+		_brightness = atoi(pch);
+		pch = strtok(NULL, ",\r");
+		if ( pch[0] == 'T' ) _auto_bright = TRI_ON;
+		else _auto_bright = TRI_OFF;
+	}
+}
+		
+		
+/*              RGB PRIVATE  METHODS                      */
+ezo_response EZO_RGB::_changeOutput(ezo_rgb_output output,int8_t enable_output) {
+	// format is "O,[parameter],[0|1]\r"
+	uint8_t PARAMETER_LEN = 10;
+	char parameter[PARAMETER_LEN];
+	switch (output) {
+		case EZO_RGB_OUT_RGB:
+		strncpy(parameter,"RGB",PARAMETER_LEN); break;
+		case EZO_RGB_OUT_PROX:
+		strncpy(parameter,"PROX",PARAMETER_LEN); break;
+		case EZO_RGB_OUT_LUX:
+		strncpy(parameter,"LUX",PARAMETER_LEN); break;
+		case EZO_RGB_OUT_CIE:
+		strncpy(parameter,"CIE",PARAMETER_LEN); break;
+	}
+	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
+	return _sendCommand(_command,false,true);
+}
