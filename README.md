@@ -2,6 +2,7 @@
 
 ## Currently supports the following sensors: ##
 
+* NEW! - EZO RGB
 * EZO DO
 * EZO EC
 * EZO ORP
