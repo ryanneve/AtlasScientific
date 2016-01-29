@@ -315,7 +315,8 @@ ezo_response EZO::queryStatus(){
 }
 
 ezo_response EZO::reset(){
-	strncpy(_command,"X\r",ATLAS_COMMAND_LENGTH);
+	_command_len = sprintf(_command,"%s\r",_reset_command);
+	//strncpy(_command,"X\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,false, true);
 	// User should REALLY call child.initiaize() after this.
 	return response;
@@ -1055,6 +1056,7 @@ ezo_response EZO_RGB::enableOutput(ezo_rgb_output output) {
 ezo_response EZO_RGB::disableOutput(ezo_rgb_output output) {
 	return _changeOutput(output,0);
 }
+
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness){
 	return setLEDbrightness(brightness,true);
 }
@@ -1139,9 +1141,54 @@ ezo_response EZO_RGB::queryProximity(){
 		else _IR_bright = 0;
 	}
 }
-				
-				
-				
+
+ezo_response EZO_RGB::enableMatching(){
+	strncpy(_command,"M,1\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::disableMatching(){
+	strncpy(_command,"M,0\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::queryMatching(){
+	strncpy(_command,"M,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// Response is:
+	// ?M,<matching><CR>
+	// Where matching = 0 or 1
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.print("EZO_RGB matching Parsing:");Serial.println(_result);
+	#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?M,")) {
+		pch = strtok(NULL, ",\r");
+		if ( pch[0] == '0' ) _matching = TRI_OFF;
+		else if ( pch[0] == '1' ) _matching = TRI_ON;
+		else _matching = TRI_UNKNOWN;
+	}
+}
+
+ezo_response EZO_RGB::setGamma(float gamma_correction){
+	_command_len = sprintf(_command,"g,%f\r",gamma_correction);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::queryGamma(){
+	strncpy(_command,"G,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// Response is:
+	// ?G,<gamma><CR>
+	// Where gamma = 0.01 to 4.99
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.print("EZO_RGB gamma Parsing:");Serial.println(_result);
+	#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?G,")) {
+		pch = strtok(NULL, ",\r");
+		_gamma_correction = atof(pch);
+	}
+}
 /*              RGB PRIVATE  METHODS                      */
 
 ezo_response EZO_RGB::_changeOutput(ezo_rgb_output output,int8_t enable_output) {

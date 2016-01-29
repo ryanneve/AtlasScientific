@@ -106,6 +106,7 @@ class EZO: public Atlas {
 			_calibration_status = EZO_CAL_UNKNOWN;
 			strncpy(_firmware,"0.0",6);
 			strncpy(_name, "UNKNOWN",EZO_NAME_LENGTH);
+			strncpy(_reset_command, "X",8); // default
 		}
 		ezo_response	enableContinuousReadings();
 		ezo_response	disableContinuousReadings();
@@ -138,7 +139,7 @@ class EZO: public Atlas {
 		ezo_response	queryStatus();
 		ezo_restart_code	getStatus() {return _restart_code; }
 		float			getVoltage() {return _voltage;}
-		ezo_response	reset();
+		ezo_response	reset(); // for most but not all EZO sensors
 		ezo_response	setTempComp(float temp_C);
 		ezo_response	queryTempComp();
 		float			getTempComp() {return _temp_comp;}
@@ -151,8 +152,9 @@ class EZO: public Atlas {
 		ezo_cal_status	_calibration_status;
 		void			_initialize();
 		char			_response[EZO_RESPONSE_LENGTH]; // holds string response code "*xx\r" where xx is a two letter code.
+		char			_reset_command[8];
 	private:
-		bool			_device_information();
+		//bool			_device_information();
 		ezo_response	_getResponse(); // Serial only
 		void			_geti2cResult(); // NOT IMPLEMENTED YET
 		void			_getReading();
@@ -372,6 +374,9 @@ class EZO_RGB: public EZO {
 			_brightness		= -1; // unknown, will be 0 - 100
 			_auto_bright	= TRI_UNKNOWN;
 			_prox_distance	= -1; // unknown. Will be 0-1023
+			_matching		= TRI_UNKNOWN;
+			_gamma_correction	= 0.00; // not a valid number. Should be 0.01 to 4.99
+			strncpy(_reset_command, "Factory",8); // special for RGB
 		}
 		void			initialize(); //uses defaults
 		void			initialize(int8_t brightness,tristate auto_bright,int16_t prox_distance, int8_t ir_brightness);
@@ -382,7 +387,6 @@ class EZO_RGB: public EZO {
 		ezo_response	disableOutput(ezo_rgb_output output);
 		
 		ezo_response	calibrate();
-		// NEW section - implemented
 		ezo_response	setLEDbrightness(int8_t brightness); // Brightness is 0 to 100
 		ezo_response	setLEDbrightness(int8_t brightness,tristate auto_led);
 		ezo_response	setLEDbrightness(int8_t brightness,bool auto_led); // Brightness is 0 to 100
@@ -431,6 +435,8 @@ class EZO_RGB: public EZO {
 		tristate	_auto_bright;
 		int16_t		_prox_distance;
 		int8_t		_IR_bright;
+		tristate	_matching;
+		float		_gamma_correction;
 		ezo_rgb_output	_ezo_rgb_output;
 		int16_t		_red;	// 0 - 255
 		int16_t		_green;	// 0 - 255
