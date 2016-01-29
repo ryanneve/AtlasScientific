@@ -371,8 +371,10 @@ class EZO_RGB: public EZO {
 			_cie_output		= TRI_UNKNOWN;
 			_brightness		= -1; // unknown, will be 0 - 100
 			_auto_bright	= TRI_UNKNOWN;
+			_prox_distance	= -1; // unknown. Will be 0-1023
 		}
-		void			initialize();
+		void			initialize(); //uses defaults
+		void			initialize(int8_t brightness,tristate auto_bright,int16_t prox_distance, int8_t ir_brightness);
 		ezo_response	queryOutput();
 		tristate		getOutput(ezo_rgb_output output);
 		void			printOutputs();
@@ -380,14 +382,15 @@ class EZO_RGB: public EZO {
 		ezo_response	disableOutput(ezo_rgb_output output);
 		
 		ezo_response	calibrate();
-		// NEW section
+		// NEW section - implemented
 		ezo_response	setLEDbrightness(int8_t brightness); // Brightness is 0 to 100
+		ezo_response	setLEDbrightness(int8_t brightness,tristate auto_led);
 		ezo_response	setLEDbrightness(int8_t brightness,bool auto_led); // Brightness is 0 to 100
 		ezo_response	queryLEDbrightness(); // Brightness is 0 to 100
 		int8_t			getLEDbrightness() {return _brightness;}
-		// NEW section
+		// NEW section - implemented
 		ezo_response	enableProximity();
-		ezo_response	enableProximity(uint8_t distance);
+		ezo_response	enableProximity(int16_t distance);
 		ezo_response	proximityLED_Low();
 		ezo_response	proximityLED_Med();
 		ezo_response	proximityLED_High();
@@ -426,6 +429,8 @@ class EZO_RGB: public EZO {
 		
 		int8_t		_brightness;	// 0 - 100 % -1 = unknown
 		tristate	_auto_bright;
+		int16_t		_prox_distance;
+		int8_t		_IR_bright;
 		ezo_rgb_output	_ezo_rgb_output;
 		int16_t		_red;	// 0 - 255
 		int16_t		_green;	// 0 - 255
@@ -435,8 +440,7 @@ class EZO_RGB: public EZO {
 		float		_cie_x;	// 0.0 to 0.85
 		float		_cie_y;	// 0.0 to 0.85
 		int32_t		_cie_Y;	// 0 to 65535
-	
-
+		
 		tristate		_rgb_output;
 		tristate		_prox_output;
 		tristate		_lux_output;

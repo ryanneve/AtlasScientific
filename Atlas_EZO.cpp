@@ -908,14 +908,38 @@ ezo_response EZO_PH::querySingleReading() {
 
 /*              RGB PUBLIC METHODS                      */
 void EZO_RGB::initialize() {
-	_initialize();
-	RGB_sensor.setLEDbrightness(1,true);
-	RGB_sensor.queryLEDbrightness();
-	// LED and IR brightness
-#ifdef ATLAS_EZO_DEBUG
-	Serial.println(F("RGB Initialization Done"));
-#endif
+	_initialize(); // Generic EZO initialization
+	// Now some EZO_RGB specifics
+	// LEDs default to:
+	// _brightness = 1 and _auto_bright  = TRI_ON
+	// proximity detection disabled and ir brightness high(3)
+	initialize(1,TRI_ON,0,3);
+	//if ( _brightness != 1 || _auto_bright != TRI_ON) RGB_sensor.setLEDbrightness(1,true);
+	//if (_prox_distance != 0) RGB_sensor.disableProximity();
+	//if (_IR_bright != 3) RGB_sensor.proximityLED_High();
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.println(F("RGB Initialization Done"));
+	#endif
 }
+
+void EZO_RGB::initialize(int8_t brightness,tristate auto_bright,int16_t prox_distance, int8_t ir_brightness){
+	queryLEDbrightness();
+	if ( _brightness != brightness || _auto_bright != auto_bright) setLEDbrightness(brightness,auto_bright);
+	// proximity defaults to auto disabled and LEDs at high
+	queryProximity();
+	if (_prox_distance != prox_distance) {
+		if ( prox_distance == 0 ) disableProximity();
+		else if ( prox_distance == 1 ) enableProximity();
+		else enableProximity(prox_distance);
+	}
+	if (_IR_bright != ir_brightness) {
+		switch (ir_brightness) {
+			case 1: proximityLED_Low(); break;
+			case 2: proximityLED_Med(); break;
+			default: proximityLED_High();
+		}
+	}
+} 
 
 ezo_response EZO_RGB::querySingleReading()  {
 	int8_t width;
@@ -1031,9 +1055,15 @@ ezo_response EZO_RGB::enableOutput(ezo_rgb_output output) {
 ezo_response EZO_RGB::disableOutput(ezo_rgb_output output) {
 	return _changeOutput(output,0);
 }
-
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness){
 	return setLEDbrightness(brightness,true);
+}
+ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,tristate auto_led) {
+	// convert tristate to boolean
+	bool auto_led_bool;
+	if ( auto_led == TRI_ON ) auto_led_bool = true;
+	else auto_led_bool = false;
+	return setLEDbrightness(brightness,auto_led_bool);
 }
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,bool auto_led) {
 	// Brightness is 0 to 100
@@ -1062,9 +1092,58 @@ ezo_response EZO_RGB::queryLEDbrightness() {
 		else _auto_bright = TRI_OFF;
 	}
 }
-		
-		
+
+ezo_response EZO_RGB::disableProximity(){
+	strncpy(_command,"P,0\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::enableProximity(){
+	strncpy(_command,"P,1\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::enableProximity(int16_t distance){
+	//make sure we're in range. MAY NOT BE NECESSARY
+	_command_len = sprintf(_command,"P,%d\r",distance);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::proximityLED_Low(){
+	strncpy(_command,"P,L\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::proximityLED_Med(){
+	strncpy(_command,"P,M\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::proximityLED_High(){
+	strncpy(_command,"P,H\r",ATLAS_COMMAND_LENGTH);
+	return _sendCommand(_command,false,true);
+}
+ezo_response EZO_RGB::queryProximity(){
+	strncpy(_command,"P,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// Response is:
+	// ?P,<distance>,<LED_power>
+	// Where distance = 0,2-1023 and LED_power = H|M|L
+	#ifdef ATLAS_EZO_DEBUG
+		Serial.print("EZO_RGB Prox Parsing:");Serial.println(_result);
+	#endif
+	char * pch;
+	pch = strtok(_result,",\r");
+	if (!_strCmp(pch,"?P,")) {
+		pch = strtok(NULL, ",\r");
+		_prox_distance = atoi(pch);
+		pch = strtok(NULL, ",\r");
+		if ( pch[0] == 'H' ) _IR_bright = 3;
+		else if ( pch[0] == 'M' ) _IR_bright = 2;
+		else if ( pch[0] == 'L' ) _IR_bright = 1;
+		else _IR_bright = 0;
+	}
+}
+				
+				
+				
 /*              RGB PRIVATE  METHODS                      */
+
 ezo_response EZO_RGB::_changeOutput(ezo_rgb_output output,int8_t enable_output) {
 	// format is "O,[parameter],[0|1]\r"
 	uint8_t PARAMETER_LEN = 10;
