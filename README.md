@@ -24,7 +24,7 @@
 * Examples
 * Not tested on ORP sensor (don't have one)
 * keywords.txt for Arduino IDE
-* Temperature logger
+* Temperature logger. Will probablt just wait for EZO version due out soon.
 * Need to finish calibrate() methods for DO,EC,ORP, PH
 * Need to add I2C functionality for EZO instruments. Some hooks provided.
 
