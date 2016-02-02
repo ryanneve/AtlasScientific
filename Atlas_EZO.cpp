@@ -226,7 +226,6 @@ tristate EZO::queryResponse() {
 	return _response_mode;
 }
 
-
 ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	// Command is "SERIAL,<baud_rate>\r"
 	switch (baud_rate){ // CHeck if it's a valid value
@@ -250,7 +249,6 @@ ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	_delayUntilSerialData(500);	flushSerial(); // We might get a *RS and *RE after this which we want to ignore
 	return response;
 }
-
 
 ezo_response EZO::fixBaudRate(uint32_t desired_baud_rate){
 	// tries to change baud rate  to desired_baud_rate
@@ -315,7 +313,7 @@ ezo_response EZO::queryStatus(){
 }
 
 ezo_response EZO::reset(){
-	_command_len = sprintf(_command,"%s\r",_reset_command);
+	_command_len = sprintf(_command,"%s\r",_reset_command); // depends on device now.
 	//strncpy(_command,"X\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,false, true);
 	// User should REALLY call child.initiaize() after this.
