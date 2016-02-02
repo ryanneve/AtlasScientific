@@ -149,8 +149,20 @@ ezo_response EZO::queryInfo(){
 	else if ( !_strCmp(pch,"ORP")) _circuit_type = EZO_ORP_CIRCUIT;
 	else if ( !_strCmp(pch,"PH"))  _circuit_type = EZO_PH_CIRCUIT;
 	pch = strtok(NULL, ",\r");
-	strncpy(_firmware,pch,6);	
+	strncpy(_firmware,pch,6);
+	float firmware_f = atof(pch);
+	if ( _checkVersionResetCommand(atof(_firmware)) ) strncpy(_reset_command, "Factory",8); 
+	else strncpy(_reset_command, "X",8);
 	return response;	
+}
+boolean EZO::_checkVersionResetCommand(float firmware_f){
+	// The reset command varies by device and firmware version.
+	if ( _circuit_type == EZO_RGB_CIRCUIT ) return true; // all EZO_RGB use new command.
+	if ( _circuit_type == EZO_DO_CIRCUIT	&& firmware_f >= 1.65 ) return true;
+	if ( _circuit_type == EZO_EC_CIRCUIT	&& firmware_f >= 1.75 ) return true;
+	if ( _circuit_type == EZO_ORP_CIRCUIT	&& firmware_f >= 1.65 ) return true;
+	if ( _circuit_type == EZO_PH_CIRCUIT	&& firmware_f >= 1.85 ) return true;
+	return false;
 }
 ezo_response EZO::enableLED(){
 	strncpy(_command,"L,1\r",ATLAS_COMMAND_LENGTH);

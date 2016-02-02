@@ -106,6 +106,11 @@ class EZO: public Atlas {
 			_calibration_status = EZO_CAL_UNKNOWN;
 			strncpy(_firmware,"0.0",6);
 			strncpy(_name, "UNKNOWN",EZO_NAME_LENGTH);
+			// The _reset command changed. On older EZO circuits it was X and on newer ones it's "FACTORY". THe change point is:
+			// pH v1.9
+			// orp v1.7
+			// DO v1.7
+			// EC v1.8
 			strncpy(_reset_command, "X",8); // default
 		}
 		ezo_response	enableContinuousReadings();
@@ -158,6 +163,7 @@ class EZO: public Atlas {
 		ezo_response	_getResponse(); // Serial only
 		void			_geti2cResult(); // NOT IMPLEMENTED YET
 		void			_getReading();
+		boolean			_checkVersionResetCommand(float firmware_f);
 		tristate		_continuous_mode;
 		char 			 _name[EZO_NAME_LENGTH];
 		char			_firmware[6];
