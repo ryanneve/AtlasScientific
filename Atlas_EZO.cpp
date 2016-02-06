@@ -150,7 +150,7 @@ ezo_response EZO::queryInfo(){
 	else if ( !_strCmp(pch,"PH"))  _circuit_type = EZO_PH_CIRCUIT;
 	pch = strtok(NULL, ",\r");
 	strncpy(_firmware,pch,6);
-	float firmware_f = atof(pch);
+	//float firmware_f = atof(pch);
 	if ( _checkVersionResetCommand(atof(_firmware)) ) strncpy(_reset_command, "Factory",8); 
 	else strncpy(_reset_command, "X",8);
 	return response;	
@@ -953,8 +953,6 @@ void EZO_RGB::initialize(int8_t brightness,tristate auto_bright,int16_t prox_dis
 } 
 
 ezo_response EZO_RGB::querySingleReading()  {
-	int8_t width;
-	uint8_t precision;
 	enum parsing_modes {PARSING_RGB,PARSING_PROX,PARSING_LUX,PARSING_CIE};
 	parsing_modes parsing_data = PARSING_RGB;
 	strncpy(_command,"R\r",ATLAS_COMMAND_LENGTH);
@@ -1081,10 +1079,9 @@ ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,bool auto_led) {
 	// Brightness is 0 to 100
 	if ( auto_led ) _command_len = sprintf(_command,"L,%d,T\r",brightness);
 	else _command_len = sprintf(_command,"L,%d\r",brightness);
-	ezo_response response = _sendCommand(_command,true,true);
+	return _sendCommand(_command,true,true);
 	// Response is a comma delimited set of numbers which end in "\r". There may be up to 6 parameters in the following order:
 	// [R,G,B,][P,<prox>,][Lux,<lux>,][xyY,<CIE_x>,<CIE_y>,<CIE_Y>]. The format of the output is determined by queryOutput() and saved in _xx_output.
-	
 }
 ezo_response EZO_RGB::queryLEDbrightness() {
 	strncpy(_command,"L,?\r",ATLAS_COMMAND_LENGTH);
@@ -1103,6 +1100,7 @@ ezo_response EZO_RGB::queryLEDbrightness() {
 		if ( pch[0] == 'T' ) _auto_bright = TRI_ON;
 		else _auto_bright = TRI_OFF;
 	}
+	return response;
 }
 
 ezo_response EZO_RGB::disableProximity(){
@@ -1150,6 +1148,7 @@ ezo_response EZO_RGB::queryProximity(){
 		else if ( pch[0] == 'L' ) _IR_bright = 1;
 		else _IR_bright = 0;
 	}
+	return response;
 }
 
 ezo_response EZO_RGB::enableMatching(){
@@ -1177,10 +1176,11 @@ ezo_response EZO_RGB::queryMatching(){
 		else if ( pch[0] == '1' ) _matching = TRI_ON;
 		else _matching = TRI_UNKNOWN;
 	}
+	return response;
 }
 
 ezo_response EZO_RGB::setGamma(float gamma_correction){
-	_command_len = sprintf(_command,"g,%f\r",gamma_correction);
+	_command_len = sprintf(_command,"g,%4.3f\r",gamma_correction);
 	return _sendCommand(_command,false,true);
 }
 ezo_response EZO_RGB::queryGamma(){
@@ -1198,6 +1198,7 @@ ezo_response EZO_RGB::queryGamma(){
 		pch = strtok(NULL, ",\r");
 		_gamma_correction = atof(pch);
 	}
+	return response;
 }
 /*              RGB PRIVATE  METHODS                      */
 
