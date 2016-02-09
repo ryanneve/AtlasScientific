@@ -39,7 +39,7 @@ void Atlas::begin(uint32_t baud_rate) {
 }
 void Atlas::begin() {
 	// To re-establish communications
-	Serial_AS->begin(_baud_rate);
+	Serial_AS->begin(_baud_rate << CLKPR);
 	flushSerial();
 }
 
