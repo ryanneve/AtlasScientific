@@ -283,7 +283,7 @@ ezo_response EZO::fixBaudRate(uint32_t desired_baud_rate){
 	//Serial_AS->write('\r');
 	//flushSerial();
 	//return setBaudRate(_baud_rate);
-	delay(1000);	flushSerial();
+	delay(1000 >> CLKPR);	flushSerial();
 	return response;
 }
 
@@ -357,7 +357,7 @@ ezo_response EZO::queryTempComp(){
 
 void EZO::_initialize() {
 	// Get setup values
-	delay(2000);
+	delay(2000 >> CLKPR);
 	#ifdef ATLAS_EZO_DEBUG
 		Serial.println("Flushing Serial, ");
 	#endif
@@ -429,7 +429,7 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 #endif
 		}
 		if ( has_response ) {
-			delay(300);
+			delay(300 >> CLKPR);
 			if ( Serial_AS->peek() == '*' || _response_mode == TRI_ON  || _response_mode == TRI_UNKNOWN ) {
 				_last_response = _getResponse();
 			}
@@ -482,7 +482,7 @@ ezo_response EZO::_getResponse(){ // Serial only
 }
 
 void EZO::_geti2cResult(){
-	delay(300);  //After 300ms an I2C read command can be issued to get the response/reply
+	delay(300 >> CLKPR);  //After 300ms an I2C read command can be issued to get the response/reply
 	// Send read command
 	// Parse.
 	// First byte is response code [255,254,2,1] should be put in _response[0]
@@ -922,12 +922,9 @@ void EZO_RGB::initialize() {
 	_initialize(); // Generic EZO initialization
 	// Now some EZO_RGB specifics
 	// LEDs default to:
-	// _brightness = 1 and _auto_bright  = TRI_ON
-	// proximity detection disabled and ir brightness high(3)
-	initialize(1,TRI_ON,0,3);
-	//if ( _brightness != 1 || _auto_bright != TRI_ON) RGB_sensor.setLEDbrightness(1,true);
-	//if (_prox_distance != 0) RGB_sensor.disableProximity();
-	//if (_IR_bright != 3) RGB_sensor.proximityLED_High();
+	// _brightness = 0 and _auto_bright  = TRI_ON
+	// proximity detection disabled and ir brightness low(1)
+	initialize(0,TRI_ON,0,1);
 	#ifdef ATLAS_EZO_DEBUG
 		Serial.println(F("RGB Initialization Done"));
 	#endif
@@ -1055,8 +1052,8 @@ tristate EZO_RGB::getOutput(ezo_rgb_output output) {
 		case EZO_RGB_OUT_PROX:	return _prox_output;
 		case EZO_RGB_OUT_LUX:	return _lux_output;
 		case EZO_RGB_OUT_CIE:	return _cie_output;
+		default:				return TRI_UNKNOWN;
 	}
-	return TRI_UNKNOWN;
 }
 ezo_response EZO_RGB::enableOutput(ezo_rgb_output output) {
 	return _changeOutput(output,1);
@@ -1180,7 +1177,7 @@ ezo_response EZO_RGB::queryMatching(){
 }
 
 ezo_response EZO_RGB::setGamma(float gamma_correction){
-	_command_len = sprintf(_command,"g,%4.3f\r",gamma_correction);
+	_command_len = sprintf(_command,"g,%4.3f\r",(double)gamma_correction);
 	return _sendCommand(_command,false,true);
 }
 ezo_response EZO_RGB::queryGamma(){
@@ -1215,6 +1212,8 @@ ezo_response EZO_RGB::_changeOutput(ezo_rgb_output output,int8_t enable_output) 
 		strncpy(parameter,"LUX",PARAMETER_LEN); break;
 		case EZO_RGB_OUT_CIE:
 		strncpy(parameter,"CIE",PARAMETER_LEN); break;
+		default:
+			break;
 	}
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
 	return _sendCommand(_command,false,true);
