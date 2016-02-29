@@ -167,7 +167,7 @@ void RGB::enableContinuousReadings() {
 void RGB::disableContinuousReadings() {
 	strncpy(_command,"E\r",ATLAS_COMMAND_LENGTH);
 	_sendCommand(_command,false);
-	delay(1100); // Time for one last set of values
+	delay(1100 >> CLKPR); // Time for one last set of values
 	flushSerial();
 }
  
