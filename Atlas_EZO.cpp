@@ -228,12 +228,12 @@ tristate EZO::queryResponse() {
 			else if ( pch[0] == '1')	_response_mode = TRI_ON;
 			else						_response_mode = TRI_UNKNOWN;
 		}
-#ifdef ATLAS_EZO_DEBUG
-		Serial.print("Response mode from: "); Serial.print(pch);
-		if ( _response_mode == TRI_OFF ) Serial.println(" off");
-		else if ( _response_mode == TRI_ON ) Serial.println(" on");
-		else if ( _response_mode == TRI_UNKNOWN ) Serial.println(" unknown");
-#endif
+		if (debug()) {
+			Serial.print("Response mode from: "); Serial.print(pch);
+			if ( _response_mode == TRI_OFF ) Serial.println(" off");
+			else if ( _response_mode == TRI_ON ) Serial.println(" on");
+			else if ( _response_mode == TRI_UNKNOWN ) Serial.println(" unknown");
+		}
 	}
 	return _response_mode;
 }
@@ -317,9 +317,7 @@ ezo_response EZO::queryStatus(){
 		// parse voltage
 		Serial.print("Parsing("); Serial.print(_result+10); Serial.println(")");
 		_voltage = atof(_result + 10);
-#ifdef ATLAS_EZO_DEBUG
 		if ( debug() ) { Serial.print("Voltage is:"); Serial.println(_voltage);}
-#endif
 	}
 	return response;
 }
@@ -347,9 +345,7 @@ ezo_response EZO::queryTempComp(){
 	if ( _result[0] == '?' && _result[1] == 'T' ) {
 		_temp_comp = atof(_result + 3);
 	}
-#ifdef ATLAS_EZO_DEBUG
 	if ( debug() ) {Serial.print(F("Temperature Compensation set to:")); Serial.println(_temp_comp);}
-#endif
 	return response;
 }
  
@@ -358,40 +354,27 @@ ezo_response EZO::queryTempComp(){
 void EZO::_initialize() {
 	// Get setup values
 	delay(2000 >> CLKPR);
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Flushing Serial, ");
-	#endif
+	if (debug())	Serial.println(F("Flushing Serial, "));
 	flushSerial();
-	
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Querying Response, ");
-	#endif
+	if (debug()) Serial.println(F("Querying Response, "));
 	queryResponse();
 	if ( _response_mode != TRI_ON) {
-		#ifdef ATLAS_EZO_DEBUG
-			Serial.println("Enabling RESPONSE, ");
-		#endif
+		if (debug()) Serial.println(F("Enabling RESPONSE, "));
 		enableResponse();
 	}
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Disabling continuous readings, ");
-	#endif
+	if (debug()) Serial.println(F("Disabling continuous readings, "));
 	disableContinuousReadings();
 
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Querying continuous readings, ");
-	#endif
+	if (debug()) Serial.println(F("Querying continuous readings, "));
 	queryContinuousReadings();
-	#ifdef ATLAS_EZO_DEBUG
+	if (debug()) {
 		char buf[40];
 		sprintf(buf,"Continuous result: %s.",getResult());
 		Serial.println(buf);
-		Serial.println("Querying status, ");
-	#endif
+		Serial.println(F("Querying status, "));
+	}
 	queryStatus();
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println("Querying info ");
-	#endif
+	if (debug()) Serial.println(F("Querying info "));
 	queryInfo();
 }
 
@@ -405,28 +388,22 @@ ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_
 	char byte_to_send = command[0];
 	if ( _i2c_address == 0 ) {
 		//uint8_t command_len = sizeof(&command);
-#ifdef ATLAS_EZO_DEBUG
-		if ( debug() ) Serial.print("Sending command:");
-#endif
+		if ( debug() ) Serial.print(F("Sending command:"));
 		int8_t i = 0;
 		while (byte_to_send != 0 && i < ATLAS_COMMAND_LENGTH) {
 			Serial_AS->write((uint8_t)byte_to_send);
-#ifdef ATLAS_EZO_DEBUG
 			if ( debug() ) {
 				if ( byte_to_send == '\r' ) Serial.println("<CR>");
 				else Serial.write((char)byte_to_send);
 			}
-#endif
 			i++;
 			byte_to_send = command[i];
-	}
+		}
 		if ( has_result ) {
 			if ( _delayUntilSerialData(10000) != -1 ) {
 				_getResult(result_delay);
 			}
-#ifdef ATLAS_EZO_DEBUG
 			else if ( debug() ) Serial.println(F("No data found while waiting for result"));
-#endif
 		}
 		if ( has_response ) {
 			delay(300 >> CLKPR);
@@ -469,15 +446,13 @@ ezo_response EZO::_getResponse(){ // Serial only
 		else if ( !memcmp(_response,"*WA",3))	{ _last_response = EZO_RESPONSE_WA; _setConnected(); }
 		else									_last_response = EZO_RESPONSE_UK;
 	}
-#ifdef ATLAS_EZO_DEBUG
 	if ( debug() ) {
-		Serial.print("Got response:"); Serial.print(_response); Serial.print("= ");
+		Serial.print(F("Got response:")); Serial.print(_response); Serial.print(F("= "));
 		char buf[5] ; printResponse(buf,_last_response);	Serial.print(buf);	
-		if ( _response_mode == TRI_OFF ) Serial.println(" OFF");
-		if ( _response_mode == TRI_ON ) Serial.println(" ON");
-		if ( _response_mode == TRI_UNKNOWN ) Serial.println(" UNKNOWN");
+		if ( _response_mode == TRI_OFF ) Serial.println(F(" OFF"));
+		if ( _response_mode == TRI_ON ) Serial.println(F(" ON"));
+		if ( _response_mode == TRI_UNKNOWN ) Serial.println(F(" UNKNOWN"));
 	}
-#endif
 	return _last_response;
 }
 
@@ -514,9 +489,7 @@ void EZO_DO::initialize() {
 	//enableOutput(DO_OUT_PERCENT_SAT);
 	//enableOutput(DO_OUT_DO_MGL);
 	queryOutput();
-#ifdef ATLAS_EZO_DEBUG
-	Serial.println("DO Initialization Done");
-#endif
+	if (debug()) Serial.println(F("DO Initialization Done"));
 	
 }
 
@@ -582,12 +555,10 @@ ezo_response EZO_DO::querySingleReading() {
 			dox_parsed = true;
 			width = 8;	precision = 2;
 			dtostrf(_dox,width,precision,dox); // Dissolved oxygen in mg/l
-#ifdef ATLAS_EZO_DEBUG
 			if ( debug() )  {
 				Serial.print(F("Raw DO mg/l value: ")); Serial.println(pch);
 				Serial.print(F("Dissolved Oxygen is ")); Serial.println(dox);
 			}
-#endif
 		}
 		else if ( _sat_output && !sat_parsed) {
 			_sat = atof(pch);// convert string to float
@@ -596,12 +567,10 @@ ezo_response EZO_DO::querySingleReading() {
 			else width = 5;
 			precision = 1;
 			dtostrf(_sat,width,precision,sat); // saturation in %
-#ifdef ATLAS_EZO_DEBUG
 			if ( debug() ) {
 				Serial.print(F("Raw Sat.% value ")); Serial.println(pch);
 				Serial.print(F("Saturation % is ")); Serial.println(sat);
 			}
-#endif
 		}
 		pch = strtok(NULL, ",\r");
 	}
@@ -624,9 +593,7 @@ ezo_response EZO_DO::querySalComp(){
 	strncpy(_command,"S,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command, true,true);
 	// _result should be in the format "?S,<sal_us>,<uS|ppt>\r" // wrong in documentation
-#ifdef ATLAS_EZO_DEBUG
 	if ( debug() )  Serial.print(F("Salinity Compensation set to:"));
-#endif
 	if ( _result[0] == '?' && _result[1] == 'S' && _result[2] == ',' ) {
 		char * pch;
 		char temp_sal_comp[10];
@@ -636,16 +603,12 @@ ezo_response EZO_DO::querySalComp(){
 		if ( !_strCmp(pch,"uS")){
 			_sal_us_comp = atoi(temp_sal_comp);
 			_sal_ppt_comp = 0;
-#ifdef ATLAS_EZO_DEBUG
 			if ( debug() ) { Serial.print(_sal_us_comp);	Serial.println(" uS");}
-#endif
 		}
 		else if ( !_strCmp(pch,"ppt")) {
 			_sal_us_comp = 0;
 			_sal_ppt_comp = atof(temp_sal_comp);
-#ifdef ATLAS_EZO_DEBUG
 			if ( debug() ) {Serial.print(_sal_ppt_comp);	Serial.println(" ppt");}
-#endif
 		}
 	} 
 	return response;
@@ -665,26 +628,24 @@ ezo_response EZO_DO::queryPresComp(){
 	if ( _result[0] == '?' && _result[1] == 'P' ) {
 		_temp_comp = atof(_result + 3);
 	}
-#ifdef ATLAS_EZO_DEBUG
 	if ( debug() ) { Serial.print(F("Pressure Compensation set to:")); Serial.println(_temp_comp);}
-#endif
 	return response;
 }
 
 
 /*              DO PRIVATE METHODS                      */
 ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
-	 // format is "O,[parameter],[0|1]\r"
-	 uint8_t PARAMETER_LEN = 10;
-	 char parameter[PARAMETER_LEN];
-	 switch (output) {
-		 case DO_OUT_PERCENT_SAT:
-		 strncpy(parameter,"%",PARAMETER_LEN); break;
-		 case DO_OUT_DO_MGL:
-		 strncpy(parameter,"DO",PARAMETER_LEN); break;
-	 }
-	 _command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
-	 return _sendCommand(_command,false,true);
+	// format is "O,[parameter],[0|1]\r"
+	uint8_t PARAMETER_LEN = 10;
+	char parameter[PARAMETER_LEN];
+	switch (output) {
+		case DO_OUT_PERCENT_SAT:
+			strncpy(parameter,"%",PARAMETER_LEN); break;
+		case DO_OUT_DO_MGL:
+			strncpy(parameter,"DO",PARAMETER_LEN); break;
+	}
+	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
+	return _sendCommand(_command,false,true);
 }
 
 
@@ -696,9 +657,7 @@ void EZO_EC::initialize() {
 	queryK();
 	queryTempComp();
 	queryOutput();
-#ifdef ATLAS_EZO_DEBUG
-	Serial.println(F("EC Initialization Done"));
-#endif
+	if (debug()) Serial.println(F("EC Initialization Done"));
 }
 
 ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_standard) {
@@ -713,28 +672,24 @@ ezo_response EZO_EC::calibrate(ezo_ec_calibration_command command,uint32_t ec_st
 		case EZO_EC_CAL_QUERY:	response = queryCalibration(); ec_standard = 0;	break;
 		default:			ec_standard = 0;	break;
 	}
-	if ( ec_standard ) {
-		response = _sendCommand(_command,false,true);
-	}
+	if ( ec_standard ) response = _sendCommand(_command,false,true);
 	return response;
  }
  
  ezo_response EZO_EC::setK(float k) {
-	 _command_len = sprintf(_command,"K,%4.1f\r",(double)k);
-	 return _sendCommand(_command, false,true);
+	_command_len = sprintf(_command,"K,%4.1f\r",(double)k);
+	return _sendCommand(_command, false,true);
  }
  ezo_response EZO_EC::queryK() {
-	 strncpy(_command,"K,?\r",ATLAS_COMMAND_LENGTH);
-	 ezo_response response = _sendCommand(_command,true,true);
-	 // _result will be "?K,<floating point K number>\r"
-	 if ( _result[0] == '?' && _result[1] == 'K') {
-		 // parse k
-		 _k = atof(_result + 3);
-#ifdef ATLAS_EZO_DEBUG
-		 if ( debug() ) { Serial.print(F("EC K value is:")); Serial.println(_k);}
-#endif
-	 }
-	 return response;
+	strncpy(_command,"K,?\r",ATLAS_COMMAND_LENGTH);
+	ezo_response response = _sendCommand(_command,true,true);
+	// _result will be "?K,<floating point K number>\r"
+	if ( _result[0] == '?' && _result[1] == 'K') {
+		// parse k
+		_k = atof(_result + 3);
+		if ( debug() ) { Serial.print(F("EC K value is:")); Serial.println(_k);}
+	}
+	return response;
 }
 ezo_response EZO_EC::enableOutput(ezo_ec_output output) {
 	return _changeOutput(output,1);
@@ -746,9 +701,7 @@ ezo_response EZO_EC::queryOutput() {
 	strncpy(_command,"O,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,EC,TDS,S,SG if all are enabled
-#ifdef ATLAS_EZO_DEBUG
-	Serial.print("EC Parsing:");Serial.println(_result);
-#endif
+	if (debug())  {Serial.print("EC Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?O,")) {
@@ -869,11 +822,8 @@ ezo_response EZO_EC::_changeOutput(ezo_ec_output output,int8_t enable_output) {
 }
 /*              ORP PUBLIC METHODS                      */
  void EZO_ORP::initialize() {
-	 _initialize();
-#ifdef ATLAS_EZO_DEBUG
-	 Serial.println(F("ORP Initialization Done"));
-#endif
-	 
+	_initialize();
+	if (debug()) Serial.println(F("ORP Initialization Done"));
 }
 
 /*
@@ -901,9 +851,7 @@ ezo_response EZO_ORP::querySingleReading() {
 /*              PH PUBLIC METHODS                      */
 void EZO_PH::initialize() {
 	 _initialize();
-#ifdef ATLAS_EZO_DEBUG
-	 Serial.println(F("PH Initialization Done"));
-#endif
+	 if (debug()) Serial.println(F("PH Initialization Done"));
 }
 
 ezo_response EZO_PH::querySingleReading() {
@@ -925,9 +873,7 @@ void EZO_RGB::initialize() {
 	// _brightness = 0 and _auto_bright  = TRI_ON
 	// proximity detection disabled and ir brightness low(1)
 	initialize(0,TRI_ON,0,1);
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.println(F("RGB Initialization Done"));
-	#endif
+	if (debug()) Serial.println(F("RGB Initialization Done"));
 }
 
 void EZO_RGB::initialize(int8_t brightness,tristate auto_bright,int16_t prox_distance, int8_t ir_brightness){
@@ -956,7 +902,7 @@ ezo_response EZO_RGB::querySingleReading()  {
 	ezo_response response = _sendCommand(_command,true,4000,true); // with 2 sec timeout
 	// Response is a comma delimited set of numbers which end in "\r". There may be up to 6 parameters in the following order:
 	// [R,G,B,][P,<prox>,][Lux,<lux>,][xyY,<CIE_x>,<CIE_y>,<CIE_Y>]. The format of the output is determined by queryOutput() and saved in _xx_output.
-	Serial.print("Parsing :"); Serial.println(_result);
+	if (debug()) {Serial.print("Parsing :"); Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	while ( pch != NULL) {
@@ -1013,9 +959,7 @@ ezo_response EZO_RGB::queryOutput() {
 	strncpy(_command,"O,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,2000,true); // with 2 sec timeout
 	// _response will be ?O,[RGB,][PROX,][LUX,][CIE] if all are enabled
-#ifdef ATLAS_EZO_DEBUG
-	Serial.print("RGB Parsing:");Serial.println(_result);
-#endif
+	if (debug()) {Serial.print("RGB Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?O,")) {
@@ -1066,28 +1010,26 @@ ezo_response EZO_RGB::setLEDbrightness(int8_t brightness){
 	return setLEDbrightness(brightness,true);
 }
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,tristate auto_led) {
-	// convert tristate to boolean
+	// convert tristate to boolean then call setLEDbrightness(int8_t brightness,bool auto_led)
 	bool auto_led_bool;
 	if ( auto_led == TRI_ON ) auto_led_bool = true;
 	else auto_led_bool = false;
 	return setLEDbrightness(brightness,auto_led_bool);
 }
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,bool auto_led) {
-	// Brightness is 0 to 100
+	// Set LED brightness from 0 to 100
+	// Response is "L,%[,T]<CR>"
 	if ( auto_led ) _command_len = sprintf(_command,"L,%d,T\r",brightness);
 	else _command_len = sprintf(_command,"L,%d\r",brightness);
+	if ( debug() ) { Serial.print("Setting LED to "); Serial.println(brightness); }
 	return _sendCommand(_command,true,true);
-	// Response is a comma delimited set of numbers which end in "\r". There may be up to 6 parameters in the following order:
-	// [R,G,B,][P,<prox>,][Lux,<lux>,][xyY,<CIE_x>,<CIE_y>,<CIE_Y>]. The format of the output is determined by queryOutput() and saved in _xx_output.
 }
 ezo_response EZO_RGB::queryLEDbrightness() {
+	// Find out what LED brightness is. Call getLEDbrightness() for value
+	// Response is:?L,<%>[,T]<CR>
 	strncpy(_command,"L,?\r",ATLAS_COMMAND_LENGTH);
 	ezo_response response = _sendCommand(_command,true,true);
-	// Response is:
-	// ?L,<%>[,T]<CR>
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.print("RGB Parsing:");Serial.println(_result);
-	#endif
+	if (debug()) {Serial.print("RGB Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?L,")) {
@@ -1131,9 +1073,7 @@ ezo_response EZO_RGB::queryProximity(){
 	// Response is:
 	// ?P,<distance>,<LED_power>
 	// Where distance = 0,2-1023 and LED_power = H|M|L
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.print("EZO_RGB Prox Parsing:");Serial.println(_result);
-	#endif
+	if (debug()) {Serial.print("EZO_RGB Prox Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?P,")) {
@@ -1162,9 +1102,7 @@ ezo_response EZO_RGB::queryMatching(){
 	// Response is:
 	// ?M,<matching><CR>
 	// Where matching = 0 or 1
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.print("EZO_RGB matching Parsing:");Serial.println(_result);
-	#endif
+	if (debug()) {Serial.print("EZO_RGB matching Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?M,")) {
@@ -1186,9 +1124,7 @@ ezo_response EZO_RGB::queryGamma(){
 	// Response is:
 	// ?G,<gamma><CR>
 	// Where gamma = 0.01 to 4.99
-	#ifdef ATLAS_EZO_DEBUG
-		Serial.print("EZO_RGB gamma Parsing:");Serial.println(_result);
-	#endif
+	if (debug()) {Serial.print("EZO_RGB gamma Parsing:");Serial.println(_result);}
 	char * pch;
 	pch = strtok(_result,",\r");
 	if (!_strCmp(pch,"?G,")) {

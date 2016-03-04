@@ -47,11 +47,14 @@ uint16_t Atlas::flushSerial(){
 	Serial.print("Flushing Serial ");
 	if ( offline() ) return 0;
 	uint16_t flushed = 0;
+	char flush_char;
+	if (debug()) Serial.print("Flushing:");
 	while (Serial_AS->available()) {
-		Serial_AS->read();
+		flush_char = Serial_AS->read();
+		if (debug()) Serial.print(flush_char);
 		flushed++;
 	}
-	Serial.print("Flushed "); Serial.println(flushed);
+	Serial.print("\r\nFlushed:"); Serial.println(flushed);
 	return flushed;
 }
 
