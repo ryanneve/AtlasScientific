@@ -44,17 +44,17 @@ void Atlas::begin() {
 }
 
 uint16_t Atlas::flushSerial(){
-	Serial.print("Flushing Serial ");
+	Serial.print(F("Flushing Serial "));
 	if ( offline() ) return 0;
 	uint16_t flushed = 0;
 	char flush_char;
-	if (debug()) Serial.print("Flushing:");
+	if (debug()) Serial.print(F("Flushing:"));
 	while (Serial_AS->available()) {
 		flush_char = Serial_AS->read();
 		if (debug()) Serial.print(flush_char);
 		flushed++;
 	}
-	Serial.print("\r\nFlushed:"); Serial.println(flushed);
+	if (debug()) { Serial.print(F("\r\nFlushed:")); Serial.println(flushed);}
 	return flushed;
 }
 
@@ -89,8 +89,10 @@ int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis) const{
 
 void Atlas::_getResult(uint16_t result_delay){
 	// read last message from Serial_AS and save it to _result.
-	if ( result_delay ) Serial.print(_delayUntilSerialData(result_delay));
-	else Serial.print("noDelay");
+	if ( debug()) {
+		if ( result_delay ) Serial.print(_delayUntilSerialData(result_delay));
+		else Serial.print(F("noDelay"));
+	}
 	if ( online() ) {
 		Serial_AS->setTimeout(3000);
 		_result_len = Serial_AS->readBytesUntil('\r',_result,ATLAS_SERIAL_RESULT_LEN);
@@ -98,9 +100,7 @@ void Atlas::_getResult(uint16_t result_delay){
 	}
 	else _result_len = 0;
 	_result[_result_len] = 0; // null terminate
-#ifdef ATLAS_DEBUG
-	Serial.print("Got "); Serial.print(_result_len); Serial.print(" byte result:"); Serial.println(_result);
-#endif
+	if ( debug()) { Serial.print(F("Got ")); Serial.print(_result_len); Serial.print(F(" byte result:")); Serial.println(_result);}
 }
 
 
