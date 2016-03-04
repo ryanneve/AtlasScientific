@@ -183,8 +183,9 @@ class EZO: public Atlas {
 /*-------------------- DO --------------------*/
 const float DEFAULT_PRESSURE_KPA = 101.325;
 enum do_output {
-	DO_OUT_PERCENT_SAT,
-	DO_OUT_DO_MGL
+	EZO_DO_OUT_UNKNOWN	= 0,
+	EZO_DO_OUT_MGL		= 1,
+	EZO_DO_OUT_SAT		= 2,
 };
 
 enum ezo_do_calibration_command {
@@ -242,10 +243,11 @@ class EZO_DO: public EZO {
 const float EZO_EC_DEFAULT_TEMP = 25.1;
 
 enum ezo_ec_output {
-	EZO_EC_OUT_EC, 
-	EZO_EC_OUT_TDS,
-	EZO_EC_OUT_S,
-	EZO_EC_OUT_SG
+	EZO_EC_OUT_UNKNOWN	= 0,
+	EZO_EC_OUT_EC		= 1, 
+	EZO_EC_OUT_TDS		= 2,
+	EZO_EC_OUT_S		= 4,
+	EZO_EC_OUT_SG		= 8
 };
 
 enum ezo_ec_calibration_command {

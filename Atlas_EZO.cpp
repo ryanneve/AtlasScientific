@@ -486,8 +486,8 @@ void EZO_DO::initialize() {
 	queryTempComp();
 	querySalComp();
 	queryPresComp();
-	//enableOutput(DO_OUT_PERCENT_SAT);
-	//enableOutput(DO_OUT_DO_MGL);
+	//enableOutput(EZO_DO_OUT_SAT);
+	//enableOutput(EZO_DO_OUT_MGL);
 	queryOutput();
 	if (debug()) Serial.println(F("DO Initialization Done"));
 	
@@ -533,8 +533,8 @@ void  EZO_DO::printOutputs(){
 }
 tristate EZO_DO::getOutput(do_output output) {
 	switch (output) {
-		case DO_OUT_PERCENT_SAT: return _sat_output;
-		case DO_OUT_DO_MGL: return _dox_output;
+		case EZO_DO_OUT_SAT: return _sat_output;
+		case EZO_DO_OUT_MGL: return _dox_output;
 	}
 	return TRI_UNKNOWN;
 }
@@ -639,9 +639,9 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 	uint8_t PARAMETER_LEN = 10;
 	char parameter[PARAMETER_LEN];
 	switch (output) {
-		case DO_OUT_PERCENT_SAT:
+		case EZO_DO_OUT_SAT:
 			strncpy(parameter,"%",PARAMETER_LEN); break;
-		case DO_OUT_DO_MGL:
+		case EZO_DO_OUT_MGL:
 			strncpy(parameter,"DO",PARAMETER_LEN); break;
 	}
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
