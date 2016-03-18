@@ -535,8 +535,8 @@ tristate EZO_DO::getOutput(do_output output) {
 	switch (output) {
 		case EZO_DO_OUT_SAT: return _sat_output;
 		case EZO_DO_OUT_MGL: return _dox_output;
+		default: return TRI_UNKNOWN;
 	}
-	return TRI_UNKNOWN;
 }
 
 
@@ -643,6 +643,7 @@ ezo_response EZO_DO::_changeOutput(do_output output,int8_t enable_output) {
 			strncpy(parameter,"%",PARAMETER_LEN); break;
 		case EZO_DO_OUT_MGL:
 			strncpy(parameter,"DO",PARAMETER_LEN); break;
+		default: return EZO_RESPONSE_UK;
 	}
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
 	return _sendCommand(_command,false,true);
@@ -738,8 +739,8 @@ tristate EZO_EC::getOutput(ezo_ec_output output) {
 		case EZO_EC_OUT_TDS: return _tds_output;
 		case EZO_EC_OUT_S: return _s_output;
 		case EZO_EC_OUT_SG: return _sg_output;
+		default: return TRI_UNKNOWN;
 	}
-	return TRI_UNKNOWN;
 }
 ezo_response EZO_EC::querySingleReading() {
 	int8_t width;
@@ -816,6 +817,7 @@ ezo_response EZO_EC::_changeOutput(ezo_ec_output output,int8_t enable_output) {
 		strncpy(parameter,"S",PARAMETER_LEN); break;
 		case EZO_EC_OUT_SG:
 		strncpy(parameter,"SG",PARAMETER_LEN); break;
+		default: return EZO_RESPONSE_UK;
 	}
 	_command_len = sprintf(_command,"O,%s,%d\r",parameter,enable_output);
 	return _sendCommand(_command,false,true);
