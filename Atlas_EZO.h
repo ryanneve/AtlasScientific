@@ -212,8 +212,8 @@ class EZO_DO: public EZO {
 	ezo_response	setPresComp(float pressure_kpa);
 	ezo_response	queryPresComp();
 	float			getPressure() {return _pressure;}
-	ezo_response	setSalComp(uint32_t sal_us);
-	uint32_t		getSalComp() {return _sal_us_comp;}
+	ezo_response	setSalComp(uint32_t sal_uS);
+	uint32_t		getSalComp() {return _sal_uS_comp;}
 	ezo_response	setSalPPTComp(float sal_ppt);
 	float			getSalPPTComp(){return _sal_ppt_comp;}
 	ezo_response	querySalComp();
@@ -233,7 +233,7 @@ class EZO_DO: public EZO {
 	float			_sat;
 	float			_dox;
 	float			_pressure;
-	uint32_t		_sal_us_comp;
+	uint32_t		_sal_uS_comp;
 	float			_sal_ppt_comp;
 };
 
@@ -269,10 +269,10 @@ class EZO_EC: public EZO {
 			_tds_output = TRI_UNKNOWN;
 			_s_output = TRI_UNKNOWN;
 			_sg_output = TRI_UNKNOWN;
-			_ec = 0.0;
-			_tds = 0.0;
-			_sal = 0.0;
-			_sg = 0.0;
+			_ec = 0.0;		
+			_tds = 0.0;		
+			_sal = 0.0;		
+			_sg = 0.0;		
 		}
 		void			initialize();		
 		ezo_response	calibrate(ezo_ec_calibration_command command) { return calibrate(command,0);}
@@ -304,10 +304,10 @@ class EZO_EC: public EZO {
 		tristate		_tds_output;
 		tristate		_s_output;
 		tristate		_sg_output;
-		float			_ec;
-		float			_tds;
-		float			_sal;
-		float			_sg;
+		float			_ec;	// uS
+		float			_tds;	//mg/L
+		float			_sal;	// PSS-78 (no units)
+		float			_sg;	// Dimensionless unit
 };
 
 /*-------------------- ORP --------------------*/

@@ -44,7 +44,6 @@ void Atlas::begin() {
 }
 
 uint16_t Atlas::flushSerial(){
-	Serial.print(F("Flushing Serial "));
 	if ( offline() ) return 0;
 	uint16_t flushed = 0;
 	char flush_char;

@@ -577,14 +577,14 @@ ezo_response EZO_DO::querySingleReading() {
 	return response;
 }
 
-ezo_response EZO_DO::setSalComp(uint32_t sal_us) {
-	_sal_us_comp = sal_us;
+ezo_response EZO_DO::setSalComp(uint32_t sal_uS) {
+	_sal_uS_comp = sal_uS;
 	_sal_ppt_comp = 0.00;
-	_command_len = sprintf(_command,"S,%lu\r",sal_us);
+	_command_len = sprintf(_command,"S,%lu\r",sal_uS);
 	return _sendCommand(_command, false,true);
 }
 ezo_response EZO_DO::setSalPPTComp(float sal_ppt) {
-	_sal_us_comp = 0;
+	_sal_uS_comp = 0;
 	_sal_ppt_comp = sal_ppt;
 	_command_len = sprintf(_command,"S,%4.1f,PPT\r",(double)sal_ppt);
 	return _sendCommand(_command, false,true);
@@ -601,12 +601,12 @@ ezo_response EZO_DO::querySalComp(){
 		strncpy(temp_sal_comp,pch,10);
 		pch = strtok(NULL, ",\r"); // "us" or "ppt"
 		if ( !_strCmp(pch,"uS")){
-			_sal_us_comp = atoi(temp_sal_comp);
+			_sal_uS_comp = atoi(temp_sal_comp);
 			_sal_ppt_comp = 0;
-			if ( debug() ) { Serial.print(_sal_us_comp);	Serial.println(" uS");}
+			if ( debug() ) { Serial.print(_sal_uS_comp);	Serial.println(" uS");}
 		}
 		else if ( !_strCmp(pch,"ppt")) {
-			_sal_us_comp = 0;
+			_sal_uS_comp = 0;
 			_sal_ppt_comp = atof(temp_sal_comp);
 			if ( debug() ) {Serial.print(_sal_ppt_comp);	Serial.println(" ppt");}
 		}
