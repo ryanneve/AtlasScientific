@@ -27,12 +27,12 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 	#define ATLAS_DEBUG 1
 #endif
 
-void Atlas::begin(HardwareSerial *serial,uint32_t baud_rate) {
+void Atlas::begin(HardwareSerial *serial,const uint32_t baud_rate) {
 	// Need to do this at least once
 	Serial_AS = serial;
 	begin(baud_rate);
 }
-void Atlas::begin(uint32_t baud_rate) {
+void Atlas::begin(const uint32_t baud_rate) {
 	// To change baud rate
 	_baud_rate = baud_rate;
 	begin();
@@ -86,7 +86,7 @@ int16_t Atlas::_delayUntilSerialData(uint32_t delay_millis) const{
 	return -1;
 }
 
-void Atlas::_getResult(uint16_t result_delay){
+void Atlas::_getResult(const uint16_t result_delay){
 	// read last message from Serial_AS and save it to _result.
 	if ( debug()) {
 		if ( result_delay ) Serial.print(_delayUntilSerialData(result_delay));

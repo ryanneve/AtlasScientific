@@ -36,7 +36,7 @@ void RGB::initialize(){
 	initialize(RGB_UNKNOWN);
 }
 
-void RGB::initialize(rgb_mode mode){
+void RGB::initialize(const rgb_mode mode){
 	// initialize to NO_SENSOR_DATA beacause we may never query some of these based on configuration.
 	_red		= NO_SENSOR_DATA;
 	_blue		= NO_SENSOR_DATA;
@@ -171,7 +171,7 @@ void RGB::disableContinuousReadings() {
 	flushSerial();
 }
  
-tristate RGB::setMode(rgb_mode mode) {
+tristate RGB::setMode(const rgb_mode mode) {
 	tristate result = TRI_UNKNOWN;
 	_rgb_mode = mode;
 	sprintf(_command,"M%d\r",mode);
@@ -240,8 +240,8 @@ tristate RGB::queryInfo(){
 
 /*              PRIVATE METHODS                      */
 
-void RGB::_sendCommand(char * command, bool has_result){_sendCommand(command,has_result,DEFAULT_COMMAND_DELAY);}
-void RGB::_sendCommand(char * command, bool has_result,uint16_t result_delay){
+void RGB::_sendCommand(const char * command,const bool has_result){_sendCommand(command,has_result,DEFAULT_COMMAND_DELAY);}
+void RGB::_sendCommand(const char * command,const bool has_result,const uint16_t result_delay){
 	if ( online() ) Serial_AS->print(command);
 	if ( has_result ) {
 		if ( _delayUntilSerialData(10000) == -1 ){

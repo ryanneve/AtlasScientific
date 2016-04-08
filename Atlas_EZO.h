@@ -119,7 +119,7 @@ class EZO: public Atlas {
 		ezo_response	queryCalibration();
 		ezo_cal_status	getCalibration(){return _calibration_status;}
 		ezo_response	clearCalibration();
-		ezo_response	setI2CAddress(uint8_t address);
+		ezo_response	setI2CAddress(const uint8_t address);
 		ezo_response	enableLED();
 		ezo_response	disableLED();
 		ezo_response	queryLED();
@@ -135,23 +135,23 @@ class EZO: public Atlas {
 		ezo_response	getLastResponse(){return _last_response;}
 		void			printLastResponse();
 #ifdef ATLAS_EZO_DEBUG
-		void			printResponse(char * buf, ezo_response response);
+		void			printResponse(char * buf, const ezo_response response);
 #endif
-		ezo_response	setBaudRate(uint32_t baud_rate);
-		ezo_response	fixBaudRate(uint32_t alt_baud_rate);
+		ezo_response	setBaudRate(const uint32_t baud_rate);
+		ezo_response	fixBaudRate(const uint32_t alt_baud_rate);
 		ezo_response	sleep();
 		ezo_response	wake();
 		ezo_response	queryStatus();
 		ezo_restart_code	getStatus() {return _restart_code; }
 		float			getVoltage() {return _voltage;}
 		ezo_response	reset(); // for most but not all EZO sensors
-		ezo_response	setTempComp(float temp_C);
+		ezo_response	setTempComp(const float temp_C);
 		ezo_response	queryTempComp();
 		float			getTempComp() {return _temp_comp;}
 		char *			getResult() { return _result;}
 	protected:
-		ezo_response	_sendCommand(char * command, bool has_result, bool has_response);
-		ezo_response	_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response);
+		ezo_response	_sendCommand(const char * command, const bool has_result, const bool has_response);
+		ezo_response	_sendCommand(const char * command, const bool has_result, const uint16_t result_delay, const bool has_response);
 		uint8_t			_command_len;
 		float			_temp_comp;
 		ezo_cal_status	_calibration_status;
@@ -163,7 +163,7 @@ class EZO: public Atlas {
 		ezo_response	_getResponse(); // Serial only
 		void			_geti2cResult(); // NOT IMPLEMENTED YET
 		void			_getReading();
-		boolean			_checkVersionResetCommand(float firmware_f);
+		boolean			_checkVersionResetCommand(const float firmware_f);
 		tristate		_continuous_mode;
 		char 			 _name[EZO_NAME_LENGTH];
 		char			_firmware[6];

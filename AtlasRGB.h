@@ -55,16 +55,16 @@ class RGB: public Atlas {
 			_rgb_mode = RGB_UNKNOWN;
 			_saturated = false;
 		}
-		void			initialize();
-		void			initialize(rgb_mode mode);
-		tristate		querySingleReading();
-		void			enableContinuousReadings();
-		void			disableContinuousReadings();
-		tristate		queryInfo();
-		tristate		setMode(rgb_mode);
-		rgb_mode		getMode(){return _rgb_mode;}
-		char *			getFirmwareVer(){return _firmware_version;}
-		char *			getFirmwareDate(){return _firmware_date;}
+		void		initialize();
+		void		initialize(const rgb_mode mode);
+		tristate	querySingleReading();
+		void		enableContinuousReadings();
+		void		disableContinuousReadings();
+		tristate	queryInfo();
+		tristate	setMode(const rgb_mode mode);
+		rgb_mode	getMode(){return _rgb_mode;}
+		char *		getFirmwareVer(){return _firmware_version;}
+		char *		getFirmwareDate(){return _firmware_date;}
 		int16_t		getRed() const {return _red;}
 		int16_t		getGreen() const {return _green;}
 		int16_t		getBlue() const {return _blue;}
@@ -73,20 +73,20 @@ class RGB: public Atlas {
 		int16_t		getLuxBlue() const {return _lx_blue;}
 		int16_t		getLuxTotal() const {return _lx_total;}
 		int16_t		getLuxBeyond() const {return _lx_beyond;}
-		bool			getSaturated() const {return _saturated;}
-		char			red[RGB_DATA_LEN];
-		char			green[RGB_DATA_LEN];
-		char			blue[RGB_DATA_LEN];
-		char			lx_red[RGB_DATA_LEN];     // Values are 0 - 3235
-		char			lx_green[RGB_DATA_LEN];
-		char			lx_blue[RGB_DATA_LEN];
-		char			lx_total[RGB_DATA_LEN];  // Should be = lx_red + lx_green + lx_blue + lx_non_vis.
-		char			lx_beyond[RGB_DATA_LEN]; // lx beyond visible light spectrum
+		bool		getSaturated() const {return _saturated;}
+		char		red[RGB_DATA_LEN];
+		char		green[RGB_DATA_LEN];
+		char		blue[RGB_DATA_LEN];
+		char		lx_red[RGB_DATA_LEN];     // Values are 0 - 3235
+		char		lx_green[RGB_DATA_LEN];
+		char		lx_blue[RGB_DATA_LEN];
+		char		lx_total[RGB_DATA_LEN];  // Should be = lx_red + lx_green + lx_blue + lx_non_vis.
+		char		lx_beyond[RGB_DATA_LEN]; // lx beyond visible light spectrum
 	protected:
 	private:
-		void			_sendCommand(char * command, bool has_result);
-		void			_sendCommand(char * command, bool has_result,uint16_t result_delay);
-		rgb_mode		_rgb_mode;
+		void		_sendCommand(const char * command, const bool has_result);
+		void		_sendCommand(const char * command, const bool has_result,const uint16_t result_delay);
+		rgb_mode	_rgb_mode;
 		int16_t		_red;
 		int16_t		_green;
 		int16_t		_blue;
@@ -95,8 +95,8 @@ class RGB: public Atlas {
 		int16_t		_lx_blue;
 		int16_t		_lx_total;
 		int16_t		_lx_beyond;
-		bool			_saturated;
-		char			_firmware_version[10];
-		char			_firmware_date[10];
+		bool		_saturated;
+		char		_firmware_version[10];
+		char		_firmware_date[10];
 };
 #endif

@@ -31,7 +31,7 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 
 /*              COMMON PUBLIC METHODS                      */
 #ifdef ATLAS_EZO_DEBUG
-void EZO::printResponse(char * buf, ezo_response response){
+void EZO::printResponse(char * buf, const ezo_response response){
 	switch ( response ) {		
 		case EZO_RESPONSE_OL:		strncpy(buf,"OL",3); break; 	// Circuit offline
 		case EZO_RESPONSE_NA:		strncpy(buf,"NA",3); break; 	// Not in response mod
@@ -155,7 +155,7 @@ ezo_response EZO::queryInfo(){
 	else strncpy(_reset_command, "X",8);
 	return response;	
 }
-boolean EZO::_checkVersionResetCommand(float firmware_f){
+boolean EZO::_checkVersionResetCommand(const float firmware_f){
 	// The reset command varies by device and firmware version.
 	if ( _circuit_type == EZO_RGB_CIRCUIT ) return true; // all EZO_RGB use new command.
 	if ( _circuit_type == EZO_DO_CIRCUIT	&& firmware_f >= 1.65 ) return true;
@@ -238,7 +238,7 @@ tristate EZO::queryResponse() {
 	return _response_mode;
 }
 
-ezo_response EZO::setBaudRate(uint32_t baud_rate) {
+ezo_response EZO::setBaudRate(const uint32_t baud_rate) {
 	// Command is "SERIAL,<baud_rate>\r"
 	switch (baud_rate){ // CHeck if it's a valid value
 		case 300:
@@ -262,7 +262,7 @@ ezo_response EZO::setBaudRate(uint32_t baud_rate) {
 	return response;
 }
 
-ezo_response EZO::fixBaudRate(uint32_t desired_baud_rate){
+ezo_response EZO::fixBaudRate(const uint32_t desired_baud_rate){
 	// tries to change baud rate  to desired_baud_rate
 	uint32_t baud_rates[] = {1200,38400,9600,19200,57600,2400,300,115200}; // 8 choices in order of likelyhood.
 	uint8_t i = 0;
@@ -330,7 +330,7 @@ ezo_response EZO::reset(){
 	return response;
 }
 
-ezo_response EZO::setTempComp(float temp_C){
+ezo_response EZO::setTempComp(const float temp_C){
 	char buf[10];
 	dtostrf(temp_C,4,1,buf);
 	_temp_comp = temp_C; // store value locally
@@ -379,11 +379,11 @@ void EZO::_initialize() {
 }
 
 
-ezo_response EZO::_sendCommand(char * command, bool has_result, bool has_response){
+ezo_response EZO::_sendCommand(const char * command, const bool has_result, const bool has_response){
 	return _sendCommand(command, has_result, 0, has_response); // no extra delay
 }
 
-ezo_response EZO::_sendCommand(char * command, bool has_result, uint16_t result_delay, bool has_response) {
+ezo_response EZO::_sendCommand(const char * command, const bool has_result, const uint16_t result_delay, const bool has_response) {
 	if ( offline() ) return EZO_RESPONSE_OL;
 	char byte_to_send = command[0];
 	if ( _i2c_address == 0 ) {

@@ -41,8 +41,8 @@ class Atlas {
 			_debug = false;
 		}
 		void			begin();
-		void			begin(uint32_t baud_rate);
-		void			begin(HardwareSerial *serial,uint32_t baud_rate);
+		void			begin(const uint32_t baud_rate);
+		void			begin(HardwareSerial *serial,const uint32_t baud_rate);
 		uint32_t		getBaudRate() const {return _baud_rate;}
 		bool			online() const { return _online;} 
 		bool			offline() const { return ! _online;} // Multiplexer switched to different instrument.
@@ -50,14 +50,14 @@ class Atlas {
 		void			setOffline();
 		bool			connected() const { return _connected;}
 		char			read() { return Serial_AS->read();} // Used for console mode
-		void			write(char write_char) { Serial_AS->write(write_char); }
+		void			write(const char write_char) { Serial_AS->write(write_char); }
 		void			debugOn(){ _debug = true;}
 		void			debugOff(){_debug = false;}
 		bool			debug() const {return _debug;}
 		uint16_t		flushSerial(); // protected
 	protected:
 		HardwareSerial*	Serial_AS;
-		void			_getResult(uint16_t result_delay); // reads line into _result[]
+		void			_getResult(const uint16_t result_delay); // reads line into _result[]
 		int16_t			_delayUntilSerialData(uint32_t delay_millis) const;
 		uint8_t			_strCmp(const char *str1, const char *str2) const ;
 		void			_setConnected(); // Once connected, assume we stay connected.
