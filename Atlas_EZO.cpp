@@ -1021,10 +1021,13 @@ ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,tristate auto_led) {
 ezo_response EZO_RGB::setLEDbrightness(int8_t brightness,bool auto_led) {
 	// Set LED brightness from 0 to 100
 	// Response is "L,%[,T]<CR>"
+	ezo_response brightness_result = EZO_RESPONSE_UK;
 	if ( auto_led ) _command_len = sprintf(_command,"L,%d,T\r",brightness);
 	else _command_len = sprintf(_command,"L,%d\r",brightness);
 	if ( debug() ) { Serial.print(F("Setting LED to ")); Serial.println(brightness); }
-	return _sendCommand(_command,true,true);
+	brightness_result  = _sendCommand(_command,true,true);
+	if (brightness_result == EZO_RESPONSE_OK) _brightness = brightness; // We can probably make this assumption.
+	return brightness_result;
 }
 ezo_response EZO_RGB::queryLEDbrightness() {
 	// Find out what LED brightness is. Call getLEDbrightness() for value

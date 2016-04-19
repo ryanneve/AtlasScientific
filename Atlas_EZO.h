@@ -238,8 +238,6 @@ class EZO_DO: public EZO {
 };
 
 /*-------------------- EC --------------------*/
-
-
 const float EZO_EC_DEFAULT_TEMP = 25.1;
 
 enum ezo_ec_output {
@@ -258,8 +256,6 @@ enum ezo_ec_calibration_command {
 	EZO_EC_CAL_HIGH,
 	EZO_EC_CAL_QUERY
 };
-
-
 
 class EZO_EC: public EZO {
 	public:

@@ -63,9 +63,9 @@ class Atlas {
 		void			_setConnected(); // Once connected, assume we stay connected.
 		
 		uint32_t		_baud_rate;
-		char			_result[ATLAS_SERIAL_RESULT_LEN];
+		char			_result[ATLAS_SERIAL_RESULT_LEN]; // Could this be static to save a little memory?
 		uint8_t			_result_len;
-		char			_command[ATLAS_COMMAND_LENGTH];
+		char			_command[ATLAS_COMMAND_LENGTH]; // Could this be static to save a little memory?
 	private:
 		bool			_debug;
 		bool			_online; // Are we connected? Usually for use with multiplexer.
