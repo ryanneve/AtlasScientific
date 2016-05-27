@@ -51,7 +51,9 @@ enum ezo_circuit_type {
 	EZO_EC_CIRCUIT,
 	EZO_ORP_CIRCUIT,
 	EZO_PH_CIRCUIT,
-	EZO_RGB_CIRCUIT
+	EZO_RGB_CIRCUIT,
+	EZO_TEMP_CIRCUIT,
+	RGB_CIRCUIT		// non-EZO
 };
 	
 enum ezo_response {

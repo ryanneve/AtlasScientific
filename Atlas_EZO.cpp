@@ -494,7 +494,6 @@ void EZO_DO::initialize() {
 }
 
 ezo_response	setCalibrationAtm();
-ezo_response	setCalibrationAtm();
 ezo_response	clearCalibration();
 
 
