@@ -214,11 +214,11 @@ ezo_response EZO::disableResponse(){
 	return _sendCommand(_command,false,false);
 }
 tristate EZO::queryResponse() {
+	// Se if response_mode is on.
 	if ( _i2c_address != 0 ) {
 		_response_mode = TRI_ON;  // Always on for i2c
 	}
 	else {
-		// See if _response_mode is ON
 		_command_len = sprintf(_command,"%s,?\r",EZO_RESPONSE_COMMAND);
 		_sendCommand(_command, true,true); // Documentation is wrong
 		// Parse _result. Reply should be "?RESPONSE,<1|0>\r";
@@ -357,10 +357,13 @@ ezo_response EZO::queryTempComp(){
 void EZO::_initialize() {
 	// Get setup values
 	delay(2000 >> CLKPR);
-	if (debug())	Serial.println(F("Flushing Serial, "));
-	flushSerial();
-	if (debug()) Serial.println(F("Querying Response, "));
-	queryResponse();
+	for (uint8_t tries = 0; tries < 3; tries++) {
+		if (debug())	Serial.println(F("Flushing Serial, "));
+		flushSerial();
+		if (debug()) Serial.println(F("Querying Response, "));
+		queryResponse();
+		if (connected()) break;
+	}
 	if (!connected()) {
 		if (debug()) Serial.println(F("Communications falure, aborting"));
 		return;
