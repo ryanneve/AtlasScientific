@@ -20,10 +20,12 @@ Copyright (c) 2015 Ryan Neve <Ryan@PlanktosInstruments.com>
 		EC	v2.4
 		ORP	v2.0
 		PH	v2.0
+		RGB
+		RTD
 ============================================================================*/
 
 #define ATLAS_EZO_DEBUG
-
+#define SEND_COMMAND_DELAY	5000
 
 #include <HardwareSerial.h>
 #include <Atlas_EZO.h>
@@ -359,13 +361,16 @@ void EZO::_initialize() {
 	flushSerial();
 	if (debug()) Serial.println(F("Querying Response, "));
 	queryResponse();
+	if (!connected()) {
+		if (debug()) Serial.println(F("Communications falure, aborting"));
+		return;
+	}
 	if ( _response_mode != TRI_ON) {
 		if (debug()) Serial.println(F("Enabling RESPONSE, "));
 		enableResponse();
 	}
 	if (debug()) Serial.println(F("Disabling continuous readings, "));
 	disableContinuousReadings();
-
 	if (debug()) Serial.println(F("Querying continuous readings, "));
 	queryContinuousReadings();
 	if (debug()) {
@@ -401,7 +406,7 @@ ezo_response EZO::_sendCommand(const char * command, const bool has_result, cons
 			byte_to_send = command[i];
 		}
 		if ( has_result ) {
-			if ( _delayUntilSerialData(10000) != -1 ) {
+			if ( _delayUntilSerialData(SEND_COMMAND_DELAY) != -1 ) {
 				_getResult(result_delay);
 			}
 			else if ( debug() ) Serial.println(F("No data found while waiting for result"));

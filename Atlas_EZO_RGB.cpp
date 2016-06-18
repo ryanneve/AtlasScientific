@@ -31,7 +31,7 @@ void EZO_RGB::initialize() {
 				   // LEDs default to:
 				   // _brightness = 0 and _auto_bright  = TRI_ON
 				   // proximity detection disabled and ir brightness low(1)
-	initialize(0,TRI_ON,0,1);
+	if ( connected() ) initialize(0,TRI_ON,0,1);
 	if (debug()) Serial.println(F("RGB Initialization Done"));
 }
 
